@@ -97,18 +97,49 @@ const envelope = ({ totalItems, items = [], filters = [], limit = 30 }) => ({
 });
 
 const fixtures = {
-  /** A search that matched, with every axis the site offers over it. */
+  /**
+   * A search that matched, with every axis the site offers over it. Two of its
+   * three rows carry the word searched for and one does not, which is what a
+   * count of matching rows has to tell apart.
+   */
   "filters-scoped.json": envelope({
     totalItems: 151,
     filters: scopedGroups,
-    items: [item("101", "Braised keldish greens", "braised-keldish-greens", 4.5)],
+    items: [
+      item("101", "Braised keldish greens", "braised-keldish-greens", 4.5),
+      item("102", "Keldish pepper broth", "keldish-pepper-broth", 4.2),
+      item("103", "Marran almond wafers", "marran-almond-wafers", 3.8),
+    ],
+  }),
+
+  /**
+   * A search the site answered with rows that carry no word of it.
+   *
+   * The site matches fragments, so a term it holds nothing for still comes back
+   * with a count and a page of rows. Nothing here marks the answer as a miss,
+   * which is why the rows are counted rather than trusted.
+   */
+  "filters-unmatched.json": envelope({
+    totalItems: 7,
+    filters: [
+      group("diet", "Diets", [option("nut-free", "Nut-free", 4)]),
+      group("mealType", "Meal type", [option("drink", "Drink", 5)]),
+    ],
+    items: [
+      item("201", "Rhuvarb fizz", "rhuvarb-fizz", 4.6),
+      item("202", "Ginger cordial", "ginger-cordial", 4.1),
+      item("203", "Wafer bars", "wafer-bars", null),
+    ],
   }),
 
   /** The unfiltered listing: a total that sits exactly on the serving ceiling. */
   "filters-sitewide.json": envelope({
     totalItems: 10_000,
     filters: siteWideGroups,
-    items: [item("102", "Ostrean pepper stew", "ostrean-pepper-stew", 4.1)],
+    items: [
+      item("110", "Ostrean pepper stew", "ostrean-pepper-stew", 4.1),
+      item("111", "Marran honey loaf", "marran-honey-loaf", 4.4),
+    ],
   }),
 
   /** A scope the site understood and found nothing in. */

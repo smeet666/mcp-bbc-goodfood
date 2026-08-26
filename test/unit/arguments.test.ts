@@ -29,6 +29,8 @@ function fakeClient(): GoodFoodClient {
         filter_count: 0,
         total_available: 151,
         total_is_ceiling: false,
+        rows_seen: 0,
+        matched_rows: null,
       },
       cached: false,
     }),

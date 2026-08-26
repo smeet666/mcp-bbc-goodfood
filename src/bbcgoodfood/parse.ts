@@ -10,6 +10,19 @@ import { parseFailure } from "../errors.js";
 import type { FilterGroup, FilterOption, FilterReport } from "../types.js";
 import { SERVED_ROW_CEILING } from "../types.js";
 
+/**
+ * The shortest word worth looking for inside a row.
+ *
+ * The site matches on fragments, which is how a term it holds nothing for still
+ * comes back with a page of rows. Looking for a fragment of two characters here
+ * would repeat that mistake: it turns up inside unrelated words and would make
+ * everything look like a match.
+ */
+const SHORTEST_WORD = 3;
+
+const DIACRITICS = /[\u0300-\u036f]/g;
+const BETWEEN_WORDS = /[^a-z0-9]+/;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -77,6 +90,57 @@ function readOptions(
   return options;
 }
 
+/** The words of a text, lowercased and stripped of accents. */
+function wordsOf(text: string): string[] {
+  return text
+    .normalize("NFD")
+    .replace(DIACRITICS, "")
+    .toLowerCase()
+    .split(BETWEEN_WORDS)
+    .filter((word) => word !== "");
+}
+
+/**
+ * Whether a row carries a word of the search.
+ *
+ * Either word may be the longer one, so a search for a singular still finds the
+ * plural the title uses. Both sides have to reach the floor, which is what keeps
+ * a three-letter opening from matching every word that happens to start the same
+ * way. Title and address are read together, since a slug often spells out what a
+ * title writes another way.
+ */
+function rowCarries(row: unknown, wanted: readonly string[]): boolean {
+  if (!isRecord(row)) {
+    return false;
+  }
+  const title = typeof row.title === "string" ? row.title : "";
+  const url = typeof row.url === "string" ? row.url : "";
+  return wordsOf(`${title} ${url}`).some(
+    (word) =>
+      word.length >= SHORTEST_WORD &&
+      wanted.some((sought) => word.startsWith(sought) || sought.startsWith(word)),
+  );
+}
+
+/**
+ * How many of the rows the site served carry a word of the search.
+ *
+ * Null says there was nothing to measure, which is a different statement from
+ * zero: a search with no query, or one whose every word is too short to look
+ * for, was never weighed against anything.
+ */
+function countCarryingRows(rows: readonly unknown[], query: string | null): number | null {
+  if (query === null) {
+    return null;
+  }
+  const wanted = wordsOf(query).filter((word) => word.length >= SHORTEST_WORD);
+  if (wanted.length === 0) {
+    return null;
+  }
+  // A row counts once, however many words of the search it carries.
+  return rows.filter((row) => rowCarries(row, wanted)).length;
+}
+
 /**
  * Read the facet groups the payload publishes, naming whatever was discarded.
  *
@@ -133,6 +197,7 @@ export function parseFilterReport(payload: unknown, query: string | null): Filte
 
   const { groups } = parseFilterGroups(payload);
   const total = readCount(results.totalItems);
+  const rows: unknown[] = Array.isArray(results.items) ? results.items : [];
 
   return {
     query,
@@ -142,5 +207,7 @@ export function parseFilterReport(payload: unknown, query: string | null): Filte
     // A total that lands exactly on the ceiling was cut there, so it states a
     // floor. Reporting it as a catalogue would invent what the site withheld.
     total_is_ceiling: total === SERVED_ROW_CEILING,
+    rows_seen: rows.length,
+    matched_rows: countCarryingRows(rows, query),
   };
 }

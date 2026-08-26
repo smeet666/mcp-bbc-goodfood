@@ -53,6 +53,21 @@ export interface FilterReport {
    * for one search, so the real figure is that number or more.
    */
   total_is_ceiling: boolean;
+  /** Rows the site served on the first page of this search. */
+  rows_seen: number;
+  /**
+   * How many of those rows carry a word of the search.
+   *
+   * The site matches fragments and answers a term it holds nothing for with a
+   * count and a page of rows all the same, marking nothing as a miss. Counting
+   * what the rows actually carry is the only thing that tells the two apart,
+   * and it is rendered as a count rather than as a verdict: a reader seeing
+   * two rows out of thirty judges better than a flag that judges for them.
+   *
+   * Null when there is nothing to measure, which is a search with no query and
+   * a query holding no word long enough to look for.
+   */
+  matched_rows: number | null;
 }
 
 /**

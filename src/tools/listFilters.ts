@@ -74,6 +74,17 @@ export const listFiltersOutputShape = {
       "True when the total sits on the largest number of rows one search will serve, so it states " +
         "a floor rather than a count.",
     ),
+  rows_seen: z.number().int().describe("Rows the site served on the first page of this search."),
+  matched_rows: z
+    .number()
+    .int()
+    .nullable()
+    .describe(
+      "How many of those rows carry a word of the search. Null when there was nothing to " +
+        "measure, which is a search with no query or one whose every word is too short to look " +
+        "for. Read it beside 'rows_seen': the site answers a term it holds nothing for with a " +
+        "count and a page of rows all the same, and this is what tells the two apart.",
+    ),
   source: z.string(),
   notes: z.array(z.string()),
 } as const;
@@ -89,6 +100,9 @@ const STANDING_NOTES = [
 const CEILING_NOTE =
   "The total sits on the largest number of rows one search will serve, so it states a floor: the real figure is that number or more.";
 
+const NO_MATCH_NOTE =
+  "None of the rows the site served for this search carries a word of it, so the count describes what the site offered rather than what matched.";
+
 const NO_FACET_NOTE =
   "The site published no way to narrow this scope, which is what it answered rather than a failure to read it.";
 
@@ -96,6 +110,11 @@ function notesFor(report: FilterReport): string[] {
   const notes = [...STANDING_NOTES];
   if (report.total_is_ceiling) {
     notes.push(CEILING_NOTE);
+  }
+  // Only when rows were actually served: nothing to weigh is a different
+  // statement from nothing weighing up, and only the second is worth a note.
+  if (report.matched_rows === 0 && report.rows_seen > 0) {
+    notes.push(NO_MATCH_NOTE);
   }
   if (report.filters.length === 0) {
     notes.push(NO_FACET_NOTE);
@@ -164,6 +183,8 @@ export async function runListFilters(
       filter_count: report.filters.length,
       total_available: report.total_available,
       total_is_ceiling: report.total_is_ceiling,
+      rows_seen: report.rows_seen,
+      matched_rows: report.matched_rows,
       source: SOURCE_NAME,
       notes,
     },

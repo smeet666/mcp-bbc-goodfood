@@ -1,0 +1,100 @@
+{
+  "tabs": [
+    {
+      "label": "Recipes",
+      "identifier": "recipe",
+      "isDefault": true,
+      "isCurrent": true
+    }
+  ],
+  "filters": [
+    {
+      "label": "Diets",
+      "name": "diet",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "nut-free",
+          "label": "Nut-free",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "Meal type",
+      "name": "mealType",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "drink",
+          "label": "Drink",
+          "count": 5
+        }
+      ]
+    }
+  ],
+  "sort": [
+    {
+      "text": "Most relevant",
+      "value": "relevant",
+      "selected": true
+    },
+    {
+      "text": "Quickest",
+      "value": "quickest",
+      "selected": false
+    }
+  ],
+  "searchResults": {
+    "totalItems": 7,
+    "limit": 30,
+    "nextUrl": null,
+    "previousUrl": null,
+    "items": [
+      {
+        "id": "201",
+        "title": "Rhuvarb fizz",
+        "url": "https://www.bbcgoodfood.com/recipes/rhuvarb-fizz",
+        "isPremium": false,
+        "rating": {
+          "ratingValue": 4.6,
+          "ratingCount": 241
+        },
+        "image": {
+          "alt": "Rhuvarb fizz",
+          "height": 400,
+          "width": 600
+        }
+      },
+      {
+        "id": "202",
+        "title": "Ginger cordial",
+        "url": "https://www.bbcgoodfood.com/recipes/ginger-cordial",
+        "isPremium": false,
+        "rating": {
+          "ratingValue": 4.1,
+          "ratingCount": 242
+        },
+        "image": {
+          "alt": "Ginger cordial",
+          "height": 400,
+          "width": 600
+        }
+      },
+      {
+        "id": "203",
+        "title": "Wafer bars",
+        "url": "https://www.bbcgoodfood.com/recipes/wafer-bars",
+        "isPremium": false,
+        "rating": null,
+        "image": {
+          "alt": "Wafer bars",
+          "height": 400,
+          "width": 600
+        }
+      }
+    ]
+  },
+  "searchUrl": "/api/search-frontend/search",
+  "searchApiVersion": "6.1"
+}

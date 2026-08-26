@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GoodFoodClient } from "../../src/bbcgoodfood/client.js";
-import { runListFilters } from "../../src/tools/listFilters.js";
+import { listFiltersOutputShape, runListFilters } from "../../src/tools/listFilters.js";
 import type { FilterGroup, FilterOption, FilterReport, Read } from "../../src/types.js";
 
 const EPOCH = new Date("2026-01-01T00:00:00Z");
@@ -71,6 +71,9 @@ function report(over: Partial<FilterReport> = {}): FilterReport {
     // biome-ignore lint/nursery/useNullishCoalescing: `??` would swallow an explicit null, which this field carries on purpose.
     total_available: over.total_available === undefined ? 151 : over.total_available,
     total_is_ceiling: over.total_is_ceiling ?? false,
+    rows_seen: over.rows_seen ?? 0,
+    // biome-ignore lint/nursery/useNullishCoalescing: `??` would swallow an explicit null, which this field carries on purpose.
+    matched_rows: over.matched_rows === undefined ? null : over.matched_rows,
   };
 }
 
@@ -135,24 +138,18 @@ const SAYS_UNLISTED =
 const SAYS_FLOOR = /\b(at least|minimum|floor|lower bound)\b/i;
 
 describe("runListFilters — the shape it hands back", () => {
-  it("renders structuredContent with exactly the contracted keys and the fixed source", async () => {
+  // The keys are read off the declaration rather than written out here. Two
+  // places stating the same list end up contradicting each other, and neither
+  // can then say which one is right; this one states that the payload and the
+  // schema agree, and survives the day a field is added on purpose.
+  it("renders structuredContent with exactly the keys it declares, and the fixed source", async () => {
     const out = await runListFilters(
       fakeClient(() => report()),
       args({ query: "chicken" }),
     );
     const sc = asRecord(out.structuredContent);
 
-    expect(Object.keys(sc).sort()).toEqual(
-      [
-        "filter_count",
-        "filters",
-        "notes",
-        "query",
-        "source",
-        "total_available",
-        "total_is_ceiling",
-      ].sort(),
-    );
+    expect(Object.keys(sc).sort()).toEqual(Object.keys(listFiltersOutputShape).sort());
     expect(sc["source"]).toBe("BBC Good Food");
     expect(sc["query"]).toBe("chicken");
     expect(sc["total_available"]).toBe(151);

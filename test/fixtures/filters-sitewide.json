@@ -1,0 +1,200 @@
+{
+  "tabs": [
+    {
+      "label": "Recipes",
+      "identifier": "recipe",
+      "isDefault": true,
+      "isCurrent": true
+    }
+  ],
+  "filters": [
+    {
+      "label": "Author",
+      "name": "author",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "wren-holloway",
+          "label": "Wren Holloway",
+          "count": 480
+        },
+        {
+          "value": "iso-tamblin",
+          "label": "Iso Tamblin",
+          "count": 360
+        },
+        {
+          "value": "perrin-vale",
+          "label": "Perrin Vale",
+          "count": 160
+        }
+      ]
+    },
+    {
+      "label": "Servings",
+      "name": "servings",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "gte-1",
+          "label": "1 or more",
+          "count": 6040
+        },
+        {
+          "value": "gte-4",
+          "label": "4 or more",
+          "count": 4720
+        }
+      ]
+    },
+    {
+      "label": "Total time",
+      "name": "totalTime",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "lt-900",
+          "label": "Under 15 mins",
+          "count": 120
+        },
+        {
+          "value": "lt-1800",
+          "label": "Under 30 mins",
+          "count": 1640
+        }
+      ]
+    },
+    {
+      "label": "Cuisine",
+      "name": "cuisine",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "keldish",
+          "label": "Keldish",
+          "count": 880
+        },
+        {
+          "value": "marran",
+          "label": "Marran",
+          "count": 680
+        },
+        {
+          "value": "ostrean",
+          "label": "Ostrean",
+          "count": 240
+        }
+      ]
+    },
+    {
+      "label": "Diets",
+      "name": "diet",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "nut-free",
+          "label": "Nut-free",
+          "count": 2960
+        },
+        {
+          "value": "root-free",
+          "label": "Root-free",
+          "count": 1240
+        }
+      ]
+    },
+    {
+      "label": "Difficulty",
+      "name": "difficulty",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "easy",
+          "label": "Easy",
+          "count": 5320
+        },
+        {
+          "value": "more-effort",
+          "label": "More effort",
+          "count": 680
+        },
+        {
+          "value": "a-challenge",
+          "label": "A challenge",
+          "count": 40
+        }
+      ]
+    },
+    {
+      "label": "Meal type",
+      "name": "mealType",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "supper",
+          "label": "Supper",
+          "count": 4720
+        },
+        {
+          "value": "side",
+          "label": "Side",
+          "count": 880
+        }
+      ]
+    },
+    {
+      "label": "Ratings",
+      "name": "ratings",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "gte-3",
+          "label": "3 and above",
+          "count": 5960
+        },
+        {
+          "value": "gte-4",
+          "label": "4 and above",
+          "count": 5240
+        }
+      ]
+    }
+  ],
+  "sort": [
+    {
+      "text": "Most relevant",
+      "value": "relevant",
+      "selected": true
+    },
+    {
+      "text": "Quickest",
+      "value": "quickest",
+      "selected": false
+    }
+  ],
+  "searchResults": {
+    "totalItems": 10000,
+    "limit": 30,
+    "nextUrl": null,
+    "previousUrl": null,
+    "items": [
+      {
+        "id": "102",
+        "title": "Ostrean pepper stew",
+        "url": "https://www.bbcgoodfood.com/recipes/ostrean-pepper-stew",
+        "isPremium": false,
+        "rating": {
+          "ratingValue": 4.1,
+          "ratingCount": 142
+        },
+        "image": {
+          "alt": "Ostrean pepper stew",
+          "height": 400,
+          "width": 600
+        }
+      }
+    ]
+  },
+  "searchUrl": "/api/search-frontend/search",
+  "searchApiVersion": "6.1"
+}

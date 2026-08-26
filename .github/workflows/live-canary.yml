@@ -1,0 +1,100 @@
+# Nightly canary against the real BBC Good Food routes.
+#
+# The unit tests run against generated JSON fixtures, so they cannot detect that
+# the site renamed a field or changed a status code: the day it does, they stay
+# green while the published server is broken for everyone. This job is the only
+# thing that notices, and it opens an issue when it fails.
+#
+# It is deliberately separate from CI: it depends on a third-party service, so a
+# failure here means "the site moved", never "this pull request is bad".
+
+name: Live canary
+
+on:
+  schedule:
+    # 06:51 UTC, off the hour and clear of the other scheduled jobs.
+    - cron: "51 6 * * *"
+  workflow_dispatch:
+
+# A single run at a time, so a slow night cannot overlap with the next one.
+concurrency:
+  group: live-canary
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Needed to open the issue that reports a broken contract.
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run the live canary
+        env:
+          BGF_LIVE: "1"
+          # Slower than the default: a scheduled job has no user waiting, and
+          # the site is free to read.
+          BGF_MIN_INTERVAL_MS: "4000"
+          # Generous: a canary must fail on a changed contract, not on a slow night.
+          BGF_TIMEOUT_MS: "60000"
+          BGF_LOG_LEVEL: info
+        run: npm run test:live
+
+      - name: Report a broken canary
+        if: failure()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const title = "Live canary failing: BBC Good Food may have changed";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              "The nightly live canary failed. Either the site changed a route this server reads,",
+              "or it was unreachable from the runner.",
+              "",
+              `Run: ${runUrl}`,
+              "",
+              "The assertion messages name the field or the behaviour that moved. Fixing one means",
+              "editing `src/bbcgoodfood/parse.ts` or `src/bbcgoodfood/urls.ts`, regenerating the",
+              "fixtures so the unit tests cover the new shape, and releasing a patch version.",
+              "",
+              "The response shapes can change without notice and the unit tests will stay green while",
+              "the published server is broken for everyone. That is what this job exists to catch.",
+              "",
+              "Three assertions deserve particular attention. One checks that a facet value the site",
+              "does not know still comes back as a refusal rather than as a confident count of zero,",
+              "which is the rule the whole server is built on. One checks that the largest number of",
+              "rows a single search will serve is still the figure the report calls a floor. And one",
+              "checks that the published options are still a shortlist, since a server that called",
+              "them the accepted set would refuse values that work.",
+            ].join("\n");
+
+            // Reuse the open issue rather than filing one every night.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "live-canary",
+            });
+
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body: `Still failing as of ${new Date().toISOString()}. ${runUrl}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["live-canary"],
+              });
+            }

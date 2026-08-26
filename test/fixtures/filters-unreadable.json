@@ -1,0 +1,178 @@
+{
+  "tabs": [],
+  "filters": [
+    {
+      "label": "Author",
+      "name": "author",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "wren-holloway",
+          "label": "Wren Holloway",
+          "count": 12
+        },
+        {
+          "value": "iso-tamblin",
+          "label": "Iso Tamblin",
+          "count": 9
+        },
+        {
+          "value": "perrin-vale",
+          "label": "Perrin Vale",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "Calories",
+      "name": "calories",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "lt-250",
+          "label": "Under 250",
+          "count": 18
+        },
+        {
+          "value": "lt-500",
+          "label": "Under 500",
+          "count": 96
+        },
+        {
+          "value": "lt-750",
+          "label": "Under 750",
+          "count": 140
+        }
+      ]
+    },
+    {
+      "label": "Servings",
+      "name": "servings",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "gte-1",
+          "label": "1 or more",
+          "count": 151
+        },
+        {
+          "value": "gte-4",
+          "label": "4 or more",
+          "count": 118
+        }
+      ]
+    },
+    {
+      "label": "Total time",
+      "name": "totalTime",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "lt-900",
+          "label": "Under 15 mins",
+          "count": 3
+        },
+        {
+          "value": "lt-1800",
+          "label": "Under 30 mins",
+          "count": 41
+        }
+      ]
+    },
+    {
+      "label": "Cuisine",
+      "name": "cuisine",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "keldish",
+          "label": "Keldish",
+          "count": 22
+        },
+        {
+          "value": "marran",
+          "label": "Marran",
+          "count": 17
+        },
+        {
+          "value": "ostrean",
+          "label": "Ostrean",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "label": "Diets",
+      "name": "diet",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "nut-free",
+          "label": "Nut-free",
+          "count": 74
+        },
+        {
+          "value": "root-free",
+          "label": "Root-free",
+          "count": 31
+        }
+      ]
+    },
+    {
+      "label": "Difficulty",
+      "name": "difficulty",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "easy",
+          "label": "Easy",
+          "count": 133
+        },
+        {
+          "value": "more-effort",
+          "label": "More effort",
+          "count": 17
+        },
+        {
+          "value": "a-challenge",
+          "label": "A challenge",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "Meal type",
+      "name": "mealType",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "supper",
+          "label": "Supper",
+          "count": 118
+        },
+        {
+          "value": "side",
+          "label": "Side",
+          "count": 22
+        }
+      ]
+    },
+    {
+      "label": "Ratings",
+      "name": "ratings",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "gte-3",
+          "label": "3 and above",
+          "count": 149
+        },
+        {
+          "value": "gte-4",
+          "label": "4 and above",
+          "count": 131
+        }
+      ]
+    }
+  ]
+}

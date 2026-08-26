@@ -1,0 +1,81 @@
+{
+  "tabs": [
+    {
+      "label": "Recipes",
+      "identifier": "recipe",
+      "isDefault": true,
+      "isCurrent": true
+    }
+  ],
+  "filters": [
+    {
+      "label": "Diets",
+      "name": "diet",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "nut-free",
+          "label": "Nut-free",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "label": "Cuisine",
+      "name": "cuisine",
+      "defaultValues": [],
+      "options": []
+    },
+    {
+      "label": "Meal type",
+      "name": "mealType",
+      "options": [
+        {
+          "label": "Supper"
+        }
+      ]
+    },
+    {
+      "label": "Difficulty",
+      "options": [
+        {
+          "value": "easy",
+          "label": "Easy",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "label": "Ratings",
+      "name": "ratings",
+      "defaultValues": [],
+      "options": [
+        {
+          "value": "gte-4",
+          "label": "4 and above"
+        }
+      ]
+    }
+  ],
+  "sort": [
+    {
+      "text": "Most relevant",
+      "value": "relevant",
+      "selected": true
+    },
+    {
+      "text": "Quickest",
+      "value": "quickest",
+      "selected": false
+    }
+  ],
+  "searchResults": {
+    "totalItems": 12,
+    "limit": 30,
+    "nextUrl": null,
+    "previousUrl": null,
+    "items": []
+  },
+  "searchUrl": "/api/search-frontend/search",
+  "searchApiVersion": "6.1"
+}

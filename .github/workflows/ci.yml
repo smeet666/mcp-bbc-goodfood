@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The job reads the repository and nothing else, so it is handed a token that
+# can do nothing else either.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # A formatting or lint verdict does not depend on the version of node. In
+      # the matrix the same complaint would be reported twice, labelled with a
+      # version that has nothing to do with it. No `needs` either: a formatting
+      # nit must never hide a failing test, so both jobs start at once.
+      - run: npm run check
+
+      # The corpus the unit tests read is written into the repository, so a
+      # generator edited without regenerating leaves the suite reading a corpus
+      # nobody meant. Regenerating here and asking for no difference is what
+      # says so, rather than letting a stale corpus pass unnoticed.
+      - name: The committed corpus is the one the generator writes
+        run: |
+          npm run build:fixtures
+          git diff --exit-code test/fixtures
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [24, 26]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Unit tests only. The live suite is opt-in: the site is free to read and
+      # shared runners have no business adding load to it on every push. The
+      # nightly canary is where the real routes are exercised.
+
+      # A new server crosses its suite five times rather than three, while the
+      # corpus and the pacing settle. A suite that varies between runs is a
+      # defect whatever any single run reports.
+      - run: for i in 1 2 3 4 5; do npm test || exit 1; done
+      - run: npm run build
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # A coverage figure does not depend on the version of node that produced
+      # it, so it is measured once, like the lint verdict.
+      - run: npm run coverage
+
+      # The figure is read where the run is read, rather than by opening a log.
+      - name: Write the figures into the run summary
+        if: always()
+        run: |
+          node -e '
+            const s = require("./coverage/coverage-summary.json").total;
+            const rows = ["statements", "branches", "functions", "lines"]
+              .map((k) => `| ${k} | ${s[k].pct}% | ${s[k].covered}/${s[k].total} |`)
+              .join("\n");
+            process.stdout.write(`| what | reached | counted |\n| --- | --- | --- |\n${rows}\n`);
+          ' >> "$GITHUB_STEP_SUMMARY"
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t "${{ github.event.repository.name }}:ci" .
+      # A recipe that builds says nothing about what it built: the entry point is
+      # a path inside the image, and a wrong one only shows when something starts
+      # it. One initialize over stdio is what says the image holds a server.
+      - name: Start the image and read what it answers
+        run: |
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            | timeout 60 docker run -i --rm "${{ github.event.repository.name }}:ci" \
+            | grep -q '"serverInfo"'

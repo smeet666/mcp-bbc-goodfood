@@ -161,6 +161,12 @@ to stay usable in a kitchen. Three eggs halved come back as two, because half an
 egg is not an amount a kitchen measures out; a cook told `2` deserves to know
 which of the two happened.
 
+**A quantity is said in the unit that states it exactly.** Two grams divided by
+ten come back as 200 mg, and two hundred grams multiplied by twenty come back as
+4 kg. A figure only moves up the ladder when the larger unit holds it whole:
+1875 g stays in grams rather than becoming 1.9 kg, because a cook who cannot
+weigh the figure back is worse served by the shorter one.
+
 **A recipe whose page states no servings cannot be put to a number of people.**
 The `servings` argument is then left without effect and a note says so, because
 the multiplication would have to start from a figure the site never wrote.
@@ -413,6 +419,13 @@ et chaque ligne dit sous `scaling` si le calcul est tombé juste ou si le chiffr
 a bougé pour rester utilisable en cuisine. Trois œufs divisés par deux reviennent
 à deux, parce qu'un demi-œuf n'est pas une quantité qu'une cuisine mesure ; un
 cuisinier à qui l'on annonce `2` mérite de savoir lequel des deux s'est produit.
+
+**Une quantité s'énonce dans l'unité qui la dit exactement.** Deux grammes
+divisés par dix reviennent en 200 mg, et deux cents grammes multipliés par vingt
+reviennent en 4 kg. Un chiffre ne monte d'un échelon que si l'unité du dessus le
+porte entier : 1875 g reste en grammes plutôt que de devenir 1,9 kg, parce qu'un
+cuisinier qui ne peut pas repeser le chiffre est plus mal servi par le plus
+court.
 
 **Une recette dont la page n'énonce aucun nombre de parts ne peut pas être remise
 à un nombre de personnes.** L'argument `servings` reste alors sans effet et une

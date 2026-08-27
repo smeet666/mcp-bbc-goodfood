@@ -155,6 +155,25 @@ const DEMOTIONS: Readonly<Record<string, { unit: UnitInfo; per: number }>> = {
   lb: { unit: measure("oz"), per: 16 },
 };
 
+/**
+ * The unit one step up the ladder, and how many of the current unit fit in one.
+ *
+ * A kitchen writes a large volume in litres and skips centilitres on the way,
+ * so the rungs going up are not the mirror image of the rungs going down. A cup
+ * is absent for the same reason a recipe that never mentioned one would be
+ * strange to restate in cups: a unit is a vocabulary, and this raises a figure
+ * rather than translating it.
+ */
+const PROMOTIONS: Readonly<Record<string, { unit: UnitInfo; per: number }>> = {
+  mg: { unit: measure("g"), per: 1000 },
+  g: { unit: measure("kg"), per: 1000 },
+  ml: { unit: measure("l"), per: 1000 },
+  cl: { unit: measure("l"), per: 100 },
+  dl: { unit: measure("l"), per: 10 },
+  tsp: { unit: measure("tbsp"), per: 3 },
+  oz: { unit: measure("lb"), per: 16 },
+};
+
 /** The unit a written word names, or null when it names none. */
 export function lookupUnit(word: string): UnitInfo | null {
   const canonical = SPELLINGS[word.trim().toLowerCase()];
@@ -170,6 +189,14 @@ export function lookupUnit(word: string): UnitInfo | null {
  */
 export function demoteUnit(unit: UnitInfo): { unit: UnitInfo; per: number } | null {
   return DEMOTIONS[unit.canonical] ?? null;
+}
+
+/**
+ * The unit one step up, with how many of the current unit fit in one of it.
+ * Null at the top of a ladder, where there is nothing larger to say it in.
+ */
+export function promoteUnit(unit: UnitInfo): { unit: UnitInfo; per: number } | null {
+  return PROMOTIONS[unit.canonical] ?? null;
 }
 
 /** How finely a kitchen divides one of this measure. */

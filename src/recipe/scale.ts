@@ -10,7 +10,7 @@
 import { invalidInput } from "../errors.js";
 import { divisibilityOf } from "./divisibility.js";
 import type { Divisibility, UnitInfo } from "./units.js";
-import { demoteUnit, lookupUnit } from "./units.js";
+import { demoteUnit, lookupUnit, promoteUnit } from "./units.js";
 
 export interface ScaledIngredient {
   /** The line as it now reads. */
@@ -132,6 +132,32 @@ interface Landed {
  * one of its unit is restated in a smaller unit rather than rounded away to
  * nothing. A counted thing lands on the smallest share a cook takes out of one.
  */
+/** How many decimals a raised figure may carry and still be written out. */
+const RAISED_PLACES = 1000;
+
+/**
+ * The same quantity said in the largest unit that still states it exactly.
+ *
+ * 4000 g is 4 kg and reads better for it. 1875 g is not 1.9 kg, and a figure a
+ * cook cannot weigh back is worse than a long one, so it stays in grams.
+ */
+function raise(amount: number, unit: UnitInfo): { amount: number; unit: UnitInfo } {
+  let value = amount;
+  let current = unit;
+  for (;;) {
+    const step = promoteUnit(current);
+    if (!step || value < step.per) {
+      return { amount: value, unit: current };
+    }
+    const above = value / step.per;
+    if (!isExact(Math.round(above * RAISED_PLACES) / RAISED_PLACES, above)) {
+      return { amount: value, unit: current };
+    }
+    value = above;
+    current = step.unit;
+  }
+}
+
 function land(raw: number, unit: UnitInfo | null, item: string): Landed {
   if (unit?.measures) {
     let value = raw;
@@ -148,7 +174,8 @@ function land(raw: number, unit: UnitInfo | null, item: string): Landed {
       value >= 1
         ? Math.round(value * 10) / 10
         : Math.max(SMALLEST_MEASURE, Math.round(value * 100) / 100);
-    return { amount: rounded, unit: current, exact: isExact(rounded, value) };
+    const raised = raise(rounded, current);
+    return { amount: raised.amount, unit: raised.unit, exact: isExact(rounded, value) };
   }
 
   const step = SMALLEST_SHARE[divisibilityOf(unit, item)];
@@ -176,7 +203,7 @@ function renderAmount(value: number, unit: UnitInfo | null): string {
       }
     }
   }
-  return String(Math.round(value * 100) / 100);
+  return String(Math.round(value * 1000) / 1000);
 }
 
 function requireFactor(factor: number): void {

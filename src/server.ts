@@ -78,6 +78,7 @@ export const INSTRUCTIONS = [
   "A count the site published nothing for is null, never zero.",
   "A recipe behind the site's subscription comes back without its ingredients and steps: send the user to its page rather than reconstructing them.",
   "get_recipe takes 'servings', and scale_ingredients takes any list of lines, to put a recipe to a different number of people. Those figures are this server's arithmetic and not the site's, so tell the user they were recomputed, and read 'scaling' on each line: 'rounded' means the figure moved to stay usable in a kitchen, since half an egg is not an amount a kitchen measures out.",
+  "A scaled quantity is said in the unit that states it exactly, so a line can come back in a different unit from the one it was written in: 200 g multiplied by twenty reads 4 kg, and 2 g divided by ten reads 200 mg. Read the unit each line carries rather than the one it started with.",
   "A recipe whose page states no number of servings cannot be put to a number of people, and the answer says so rather than guessing what it serves.",
   "This server paces itself, and a rate_limited error means the site asked it to slow down, never that nothing matched.",
   "When you show a recipe or a listing to a user, credit BBC Good Food and link the page.",

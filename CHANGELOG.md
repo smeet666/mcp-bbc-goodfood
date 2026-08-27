@@ -26,7 +26,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   stay usable in a kitchen.
   A quantity is said in the unit that states it exactly: 2 g divided by ten come
   back as 200 mg, and 200 g multiplied by twenty come back as 4 kg. A figure
-  rises only when the larger unit holds it whole, so 1875 g stays in grams.
+  rises only when the larger unit states it exactly, so 7492.5 g stays in grams.
 - `servings` on `get_recipe`, which puts the recipe to that many people. A
   recipe whose page states no number of servings is left as the site publishes
   it, and a note says why.

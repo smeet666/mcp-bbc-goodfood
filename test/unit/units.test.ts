@@ -162,8 +162,11 @@ describe("demoteUnit", () => {
   const ladder: Step[] = [
     { from: "kg", to: "g", per: 1000 },
     { from: "g", to: "mg", per: 1000 },
-    { from: "l", to: "cl", per: 100 },
-    { from: "dl", to: "cl", per: 10 },
+    // A volume lands in millilitres whichever unit it started in, since that is
+    // the unit a kitchen writes a small volume in. Centilitres and decilitres are
+    // read where a line uses them and are never a destination.
+    { from: "l", to: "ml", per: 1000 },
+    { from: "dl", to: "ml", per: 100 },
     { from: "cl", to: "ml", per: 10 },
     { from: "tbsp", to: "tsp", per: 3 },
     { from: "cup", to: "tbsp", per: 16 },
@@ -207,20 +210,19 @@ describe("demoteUnit", () => {
     expect((first?.per ?? 0) * (second?.per ?? 0)).toBe(1_000_000);
   });
 
-  it("takes l two steps down to ml, a thousand to one", () => {
+  it("takes l down to ml in one step, a thousand to one", () => {
     const first = demoteUnit(mustLookup("l"));
-    expect(first?.unit.canonical).toBe("cl");
-    const second = first === null ? null : demoteUnit(first.unit);
-    expect(second?.unit.canonical).toBe("ml");
-    expect((first?.per ?? 0) * (second?.per ?? 0)).toBe(1000);
+
+    expect(first?.unit.canonical).toBe("ml");
+    expect(first?.per).toBe(1000);
+    expect(first === null ? null : demoteUnit(first.unit)).toBeNull();
   });
 
-  it("takes dl two steps down to ml, a hundred to one", () => {
+  it("takes dl down to ml in one step, a hundred to one", () => {
     const first = demoteUnit(mustLookup("dl"));
-    expect(first?.unit.canonical).toBe("cl");
-    const second = first === null ? null : demoteUnit(first.unit);
-    expect(second?.unit.canonical).toBe("ml");
-    expect((first?.per ?? 0) * (second?.per ?? 0)).toBe(100);
+
+    expect(first?.unit.canonical).toBe("ml");
+    expect(first?.per).toBe(100);
   });
 
   it("reaches the bottom of the imperial ladder in one step from lb", () => {

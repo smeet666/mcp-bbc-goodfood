@@ -79,8 +79,13 @@ describe("ok", () => {
     const lines = text.split("\n");
 
     expect(text.length).toBeLessThanOrEqual(MAX_TEXT_CHARS);
-    expect(lines.at(-3)).toBe("Note: a first note");
-    expect(lines.at(-2)).toBe("Note: a second note");
+    // A cut body earns a note of its own saying what did not fit, so the
+    // caller's notes are found by their order rather than by their distance
+    // from the end.
+    const notes = lines.filter((line) => line.startsWith("Note: "));
+    expect(notes[0]).toBe("Note: a first note");
+    expect(notes[1]).toBe("Note: a second note");
+    expect(notes.at(-1)).toContain("the whole answer is in the structured output");
     expect(lines.at(-1)).toBe(ATTRIBUTION);
     expect(text).toContain("…");
     // The structured payload keeps the text as it was published.

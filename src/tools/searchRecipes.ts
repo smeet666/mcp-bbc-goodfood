@@ -11,7 +11,7 @@ import type { GoodFoodClient, SearchOptions } from "../bbcgoodfood/client.js";
 import { GoodFoodError } from "../errors.js";
 import type { SearchReport, SearchRow } from "../types.js";
 import { strictInput } from "./arguments.js";
-import { ok, SOURCE_NAME, type ToolResult } from "./shared.js";
+import { ok, oneLine, SOURCE_NAME, type ToolResult } from "./shared.js";
 
 export const searchRecipesDescription =
   "Search recipes on BBC Good Food and return a listing. Narrow it with 'diet', 'cuisine', " +
@@ -180,7 +180,7 @@ function renderRow(row: SearchReport["results"][number], index: number): string 
   // states no time, difficulty or rating for would otherwise end on one.
   const detail = marks.length > 0 ? `   id: ${row.id} · ${marks.join(" · ")}` : `   id: ${row.id}`;
 
-  return [`${index + 1}. ${row.title}`, detail, `   ${row.url}`].join("\n");
+  return [`${index + 1}. ${oneLine(row.title)}`, detail, `   ${row.url}`].join("\n");
 }
 
 function renderReport(report: SearchReport, shown: Rendered): string {

@@ -99,9 +99,11 @@ export const searchRecipesOutputShape = {
       "True when the total sits on the most rows one search will serve, so it states a floor.",
     ),
   rows_seen: z.number().int().describe("Rows the site served, before anything was set aside."),
-  restrictions_dropped: z
+  restrictions_lifted: z
     .array(z.string())
-    .describe("Restrictions the site could not answer, dropped so the search could run."),
+    .describe(
+      "Restrictions let go of so the search could run again after the restricted one returned nothing.",
+    ),
   premium_dropped: z
     .number()
     .int()
@@ -151,9 +153,9 @@ function notesFor(report: SearchReport, shown: Rendered): string[] {
   if (report.total_is_ceiling) {
     notes.push(CEILING_NOTE);
   }
-  if (report.restrictions_dropped.length > 0) {
+  if (report.restrictions_lifted.length > 0) {
     notes.push(
-      `The site could not answer these restrictions, so the search ran without them: ${report.restrictions_dropped.join(", ")}.`,
+      `The restricted search returned nothing, so it ran again without these restrictions: ${report.restrictions_lifted.join(", ")}. A value the site does not know and a value it knows but holds nothing for answer alike, with a total of zero, so which of the two happened here is not established.`,
     );
   }
   if (shown.setAside > 0) {
@@ -261,7 +263,7 @@ export async function runSearchRecipes(
       total_available: report.total_available,
       total_is_ceiling: report.total_is_ceiling,
       rows_seen: report.rows_seen,
-      restrictions_dropped: report.restrictions_dropped,
+      restrictions_lifted: report.restrictions_lifted,
       premium_dropped: shown.premiumDropped,
       source: SOURCE_NAME,
       notes,

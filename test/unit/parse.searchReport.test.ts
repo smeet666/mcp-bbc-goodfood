@@ -23,7 +23,7 @@ const readable = (extra: Record<string, unknown> & { slug?: string }): unknown =
 
 const failureCode = (payload: unknown, query: string): string => {
   try {
-    parseSearchReport(payload, query);
+    parseSearchReport(payload, query).report;
   } catch (error) {
     expect(error).toBeInstanceOf(GoodFoodError);
     return (error as GoodFoodError).code;
@@ -115,7 +115,7 @@ describe("parseSearchReport", () => {
 
   describe("the two counts", () => {
     it("says a row was lost by making the two counts differ", () => {
-      const report = parseSearchReport(fixture("search-degraded.json"), "keldish");
+      const report = parseSearchReport(fixture("search-degraded.json"), "keldish").report;
 
       expect(report.rows_seen).toBe(6);
       expect(report.result_count).toBe(2);
@@ -124,7 +124,7 @@ describe("parseSearchReport", () => {
     });
 
     it("holds the two counts equal on a whole page", () => {
-      const report = parseSearchReport(fixture("search-page.json"), "keldish");
+      const report = parseSearchReport(fixture("search-page.json"), "keldish").report;
       const { skipped } = parseSearchRows(fixture("search-page.json"));
 
       expect(report.rows_seen).toBe(5);
@@ -134,7 +134,7 @@ describe("parseSearchReport", () => {
     });
 
     it("counts no row at all when the page carries none", () => {
-      const report = parseSearchReport(fixture("search-restricted-none.json"), "keldish");
+      const report = parseSearchReport(fixture("search-restricted-none.json"), "keldish").report;
 
       expect(report.rows_seen).toBe(0);
       expect(report.result_count).toBe(0);
@@ -142,23 +142,27 @@ describe("parseSearchReport", () => {
     });
 
     it("carries the query it was measured under", () => {
-      expect(parseSearchReport(fixture("search-page.json"), "keldish").query).toBe("keldish");
+      expect(parseSearchReport(fixture("search-page.json"), "keldish").report.query).toBe(
+        "keldish",
+      );
     });
   });
 
   describe("the total the site states", () => {
     it("carries the figure the page publishes", () => {
-      expect(parseSearchReport(fixture("search-page.json"), "keldish").total_available).toBe(195);
-      expect(parseSearchReport(fixture("search-page.json"), "keldish").total_is_ceiling).toBe(
-        false,
+      expect(parseSearchReport(fixture("search-page.json"), "keldish").report.total_available).toBe(
+        195,
       );
+      expect(
+        parseSearchReport(fixture("search-page.json"), "keldish").report.total_is_ceiling,
+      ).toBe(false);
     });
 
     it("holds null on a total it cannot read", () => {
       const unreadable: unknown[] = ["lots", null, {}, Number.NaN];
 
       for (const total of unreadable) {
-        const report = parseSearchReport(payloadOf([], total), "keldish");
+        const report = parseSearchReport(payloadOf([], total), "keldish").report;
 
         expect(report.total_available).toBeNull();
         expect(report.total_is_ceiling).toBe(false);
@@ -166,15 +170,15 @@ describe("parseSearchReport", () => {
     });
 
     it("marks a total of exactly ten thousand as a ceiling", () => {
-      const report = parseSearchReport(payloadOf([], 10_000), "keldish");
+      const report = parseSearchReport(payloadOf([], 10_000), "keldish").report;
 
       expect(report.total_available).toBe(10_000);
       expect(report.total_is_ceiling).toBe(true);
     });
 
     it("marks a total on either side of the ceiling as a count", () => {
-      const under = parseSearchReport(payloadOf([], 9999), "keldish");
-      const over = parseSearchReport(payloadOf([], 10_001), "keldish");
+      const under = parseSearchReport(payloadOf([], 9999), "keldish").report;
+      const over = parseSearchReport(payloadOf([], 10_001), "keldish").report;
 
       expect(under.total_available).toBe(9999);
       expect(under.total_is_ceiling).toBe(false);
@@ -198,7 +202,7 @@ describe("parseSearchReport", () => {
 
     it("reads an absent or unusable items key as a page holding no row", () => {
       for (const items of [undefined, null, "none", 7, {}]) {
-        const report = parseSearchReport(payloadOf(items, 12), "keldish");
+        const report = parseSearchReport(payloadOf(items, 12), "keldish").report;
 
         expect(report.rows_seen).toBe(0);
         expect(report.result_count).toBe(0);

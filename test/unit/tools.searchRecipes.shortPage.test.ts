@@ -49,7 +49,7 @@ const reportOf = (rows: SearchRow[]): SearchReport => ({
   total_available: 195,
   total_is_ceiling: false,
   rows_seen: rows.length,
-  restrictions_dropped: [],
+  restrictions_lifted: [],
 });
 
 /** Hands the page back untouched: the argument is the tool's business. */

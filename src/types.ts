@@ -31,12 +31,12 @@ export interface FilterOption {
  * narrow a search.
  */
 export interface FilterGroup {
-  /** The argument name a search takes for this axis. */
+  /** The site's own name for the axis. */
   name: string;
   /** The site's own wording for the axis. */
   label: string;
   options: FilterOption[];
-  /** How many options the site published here. */
+  /** How many options this answer rendered. */
   option_count: number;
 }
 
@@ -98,7 +98,7 @@ export interface SearchReport {
    * Named with the argument a caller wrote rather than with the site's own
    * parameter, since the first is what they would have to change.
    */
-  restrictions_dropped: string[];
+  restrictions_lifted: string[];
 }
 
 /** One line of an ingredient list, as the site publishes it. */

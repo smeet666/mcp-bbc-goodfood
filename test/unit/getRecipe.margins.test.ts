@@ -148,7 +148,9 @@ describe("parseRecipe on shapes the page has no business carrying", () => {
       "For the base",
       "For the icing",
     ]);
-    expect(skipped).toHaveLength(3);
+    // Three groups, plus the method: a page carrying no readable steps says so
+    // too, since a recipe served without a method is a claim of its own.
+    expect(skipped).toHaveLength(4);
     for (const line of skipped) {
       expect(line).not.toBe("");
     }
@@ -218,7 +220,9 @@ describe("parseRecipe on shapes the page has no business carrying", () => {
     );
 
     expect(recipe.steps).toStrictEqual(["Mix.", "Bake."]);
-    expect(skipped).toHaveLength(3);
+    // Three groups, plus the method: a page carrying no readable steps says so
+    // too, since a recipe served without a method is a claim of its own.
+    expect(skipped).toHaveLength(4);
   });
 
   it("drops a nutrition entry that is not an object, or that names nothing", () => {

@@ -267,7 +267,7 @@ describe("parseFilterReport — a payload that is not an object", () => {
     it(`raises parse_failure when the payload is ${shape}`, () => {
       // Nothing is readable there, and an empty report would dress a breakdown
       // up as a result.
-      expect(codeThrownBy(() => parseFilterReport(payload, null))).toBe("parse_failure");
+      expect(codeThrownBy(() => parseFilterReport(payload, null).report)).toBe("parse_failure");
     });
   }
 });

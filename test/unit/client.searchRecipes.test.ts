@@ -111,7 +111,7 @@ describe("GoodFoodClient.searchRecipes", () => {
     expect(read.data.results).toHaveLength(2);
     expect(read.data.result_count).toBe(2);
     expect(read.data.total_available).toBe(12);
-    expect(sorted(read.data.restrictions_dropped)).toEqual(["diet", "max_total_minutes"]);
+    expect(sorted(read.data.restrictions_lifted)).toEqual(["diet", "max_total_minutes"]);
     const secondAsk = new URL(fake.urls[1]!).searchParams;
     expect(secondAsk.get("search")).toBe("keldish");
     expect(secondAsk.has("diet")).toBe(false);
@@ -124,8 +124,8 @@ describe("GoodFoodClient.searchRecipes", () => {
         facets: { max_total_minutes: "lt-1800" },
       }),
     );
-    expect(read.data.restrictions_dropped).toEqual(["max_total_minutes"]);
-    expect(read.data.restrictions_dropped).not.toContain("totalTime");
+    expect(read.data.restrictions_lifted).toEqual(["max_total_minutes"]);
+    expect(read.data.restrictions_lifted).not.toContain("totalTime");
   });
 
   it("takes a search without restrictions that returned nothing as a real absence", async () => {
@@ -135,7 +135,7 @@ describe("GoodFoodClient.searchRecipes", () => {
     expect(read.data.results).toEqual([]);
     expect(read.data.result_count).toBe(0);
     expect(read.data.total_available).toBe(0);
-    expect(read.data.restrictions_dropped).toEqual([]);
+    expect(read.data.restrictions_lifted).toEqual([]);
   });
 
   it("still names what it dropped when the second search returned nothing either", async () => {
@@ -145,7 +145,7 @@ describe("GoodFoodClient.searchRecipes", () => {
     );
     expect(fake.urls).toHaveLength(2);
     expect(read.data.results).toEqual([]);
-    expect(read.data.restrictions_dropped).toEqual(["diet"]);
+    expect(read.data.restrictions_lifted).toEqual(["diet"]);
   });
 
   it("leaves a search that returned rows alone", async () => {
@@ -155,7 +155,7 @@ describe("GoodFoodClient.searchRecipes", () => {
     );
     expect(fake.urls).toHaveLength(1);
     expect(read.data.result_count).toBe(5);
-    expect(read.data.restrictions_dropped).toEqual([]);
+    expect(read.data.restrictions_lifted).toEqual([]);
   });
 
   it("asks the site once for two identical searches", async () => {

@@ -22,6 +22,18 @@ const INVALID_INPUT = "invalid_input";
 /** Zod's own wording. The error code is written in front of it. */
 const defaultMessage = z.core.locales.en().localeError;
 
+/**
+ * The argument a refusal is about, written into the refusal.
+ *
+ * A tool with three numeric arguments refusing "expected number to be >0" tells
+ * a caller which rule it broke and not where, and the caller has three places
+ * to look.
+ */
+function argumentPath(path: readonly PropertyKey[] | undefined): string {
+  const where = (path ?? []).join(".");
+  return where === "" ? "" : ` at ${where}`;
+}
+
 /** Declare a tool's arguments, refusing anything outside the declaration. */
 export function strictInput<Shape extends z.ZodRawShape>(shape: Shape) {
   const declared = Object.keys(shape);
@@ -29,7 +41,7 @@ export function strictInput<Shape extends z.ZodRawShape>(shape: Shape) {
   const refuse: z.core.$ZodErrorMap = (issue) =>
     issue.code === "unrecognized_keys"
       ? unknownArgumentMessage(issue.keys, declared)
-      : `[${INVALID_INPUT}] ${defaultMessage(issue)}`;
+      : `[${INVALID_INPUT}] ${defaultMessage(issue)}${argumentPath(issue.path)}`;
 
   for (const argument of Object.values(shape)) {
     carryTheCode(argument, refuse);

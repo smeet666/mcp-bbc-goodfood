@@ -42,7 +42,7 @@ const reportOf = (options: ReportOptions): SearchReport => ({
   total_available: options.totalAvailable ?? 195,
   total_is_ceiling: false,
   rows_seen: options.rowsSeen ?? options.rows.length,
-  restrictions_dropped: [],
+  restrictions_lifted: [],
 });
 
 /** Hands the page back untouched: the argument is the tool's business. */

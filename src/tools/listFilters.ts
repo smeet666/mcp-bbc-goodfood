@@ -12,6 +12,7 @@ import { z } from "zod";
 import type { GoodFoodClient } from "../bbcgoodfood/client.js";
 import { GoodFoodError } from "../errors.js";
 import type { FilterGroup, FilterReport } from "../types.js";
+import { argumentForAxis, axisValueTravels } from "../bbcgoodfood/urls.js";
 import { strictInput } from "./arguments.js";
 import { ok, oneLine, SOURCE_NAME, type ToolResult } from "./shared.js";
 
@@ -40,7 +41,7 @@ export const listFiltersInput = {
 export const listFiltersArgs = strictInput(listFiltersInput);
 
 const filterOptionSchema = z.object({
-  value: z.string().describe("Pass this back to narrow a search along this axis."),
+  value: z.string().describe("The value as the site publishes it, in the site's own units."),
   label: z.string().describe("The site's own wording for the value."),
   count: z
     .number()
@@ -50,8 +51,14 @@ const filterOptionSchema = z.object({
 });
 
 const filterGroupSchema = z.object({
-  name: z.string().describe("The argument name a search takes for this axis."),
+  name: z.string().describe("The site's own name for the axis."),
   label: z.string().describe("The site's own wording for the axis."),
+  argument: z
+    .string()
+    .nullable()
+    .describe(
+      "The search_recipes argument that restricts this axis. Null where a search takes none. A value listed here is in the site's units and may need converting before it is passed.",
+    ),
   options: z.array(filterOptionSchema),
   option_count: z
     .number()
@@ -92,8 +99,39 @@ const CEILING_NOTE =
 const NO_FACET_NOTE =
   "The site published no way to narrow this scope, which is what it answered rather than a failure to read it.";
 
+/**
+ * The axes whose values a caller cannot copy into their argument.
+ *
+ * The site counts a total time in seconds and a search argument counts it in
+ * minutes, so "lt-900" copied across asks for under nine hundred minutes and is
+ * accepted in silence. The bound axes each state a threshold the argument takes
+ * as a plain number.
+ */
+function axesToConvert(report: FilterReport): string[] {
+  return report.filters
+    .filter((group) => argumentForAxis(group.name) !== null && !axisValueTravels(group.name))
+    .map((group) => `${group.name} (as ${argumentForAxis(group.name)})`);
+}
+
+/**
+ * One axis as this server publishes it, naming the argument that restricts it.
+ *
+ * The site names its axes for itself. Five of the nine name no search argument,
+ * and a caller reading a site name as an argument name is sent to a refusal, or
+ * to a bound nobody meant where the units differ.
+ */
+function published(group: FilterGroup): FilterGroup & { argument: string | null } {
+  return { ...group, argument: argumentForAxis(group.name) };
+}
+
 function notesFor(report: FilterReport): string[] {
   const notes = [...STANDING_NOTES];
+  const converting = axesToConvert(report);
+  if (converting.length > 0) {
+    notes.push(
+      `A value listed on these axes is written in the site's own units and does not travel into its argument as it stands: ${converting.join(", ")}. A total time is published in seconds and asked for in minutes, and a bound is published as a threshold and asked for as a number.`,
+    );
+  }
   if (report.total_is_ceiling) {
     notes.push(CEILING_NOTE);
   }
@@ -165,7 +203,7 @@ export async function runListFilters(
   return ok(
     {
       query,
-      filters: report.filters,
+      filters: report.filters.map(published),
       // Counted here rather than repeated, so the field always states the length
       // of the list it sits beside.
       filter_count: report.filters.length,

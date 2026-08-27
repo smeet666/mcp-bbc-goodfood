@@ -146,23 +146,29 @@ export function parseFilterGroups(payload: unknown): { groups: FilterGroup[]; sk
  * is raised: rendering an empty listing would let a caller report that the site
  * offers no way to narrow, which was never established.
  */
-export function parseFilterReport(payload: unknown, query: string | null): FilterReport {
+export function parseFilterReport(
+  payload: unknown,
+  query: string | null,
+): { report: FilterReport; skipped: string[] } {
   const results: unknown = isRecord(payload) ? payload.searchResults : undefined;
   if (!isRecord(results)) {
     throw parseFailure("BBC Good Food answered without the block that carries its search results.");
   }
 
-  const { groups } = parseFilterGroups(payload);
+  const { groups, skipped } = parseFilterGroups(payload);
   const total = readCount(results.totalItems);
 
   return {
-    query,
-    filters: groups,
-    filter_count: groups.length,
-    total_available: total,
-    // A total that lands exactly on the ceiling was cut there, so it states a
-    // floor. Reporting it as a catalogue would invent what the site withheld.
-    total_is_ceiling: total === SERVED_ROW_CEILING,
+    report: {
+      query,
+      filters: groups,
+      filter_count: groups.length,
+      total_available: total,
+      // A total that lands exactly on the ceiling was cut there, so it states a
+      // floor. Reporting it as a catalogue would invent what the site withheld.
+      total_is_ceiling: total === SERVED_ROW_CEILING,
+    },
+    skipped,
   };
 }
 
@@ -257,7 +263,7 @@ function readRow(entry: unknown): SearchRow | string {
   // something that cannot fetch it.
   const id = url === null ? null : pathOf(url);
   if (id === null || title === null || url === null) {
-    return sayWhyDropped({ title, url, siteId: readText(entry.id) });
+    return sayWhyDropped({ title, url, id, siteId: readText(entry.id) });
   }
 
   const image: unknown = entry.image;
@@ -284,11 +290,16 @@ function readRow(entry: unknown): SearchRow | string {
 function sayWhyDropped(read: {
   title: string | null;
   url: string | null;
+  id: string | null;
   siteId: string | null;
 }): string {
+  // The identifier is the page's path, read out of the address. A row whose
+  // address names no page of this site therefore has a title and an address and
+  // still no way to be fetched, which is a cause of its own.
   const missing = [
     read.title === null ? "no title" : "",
     read.url === null ? "no address" : "",
+    read.url !== null && read.id === null ? "an address that names no page on the site" : "",
   ].filter((part) => part !== "");
 
   // The site's own identifier names the row for a bug report even though it
@@ -334,24 +345,30 @@ export function parseSearchRows(payload: unknown): { rows: SearchRow[]; skipped:
  * the only thing that says so: reporting the second alone would make a lost row
  * look like a row that was never there.
  */
-export function parseSearchReport(payload: unknown, query: string): SearchReport {
+export function parseSearchReport(
+  payload: unknown,
+  query: string,
+): { report: SearchReport; skipped: string[] } {
   const results: unknown = isRecord(payload) ? payload.searchResults : undefined;
   if (!isRecord(results)) {
     throw parseFailure("BBC Good Food answered without the block that carries its search results.");
   }
 
-  const { rows } = parseSearchRows(payload);
+  const { rows, skipped } = parseSearchRows(payload);
   const served: unknown = results.items;
   const total = readCount(results.totalItems);
 
   return {
-    query,
-    results: rows,
-    result_count: rows.length,
-    total_available: total,
-    total_is_ceiling: total === SERVED_ROW_CEILING,
-    rows_seen: Array.isArray(served) ? served.length : 0,
-    restrictions_dropped: [],
+    report: {
+      query,
+      results: rows,
+      result_count: rows.length,
+      total_available: total,
+      total_is_ceiling: total === SERVED_ROW_CEILING,
+      rows_seen: Array.isArray(served) ? served.length : 0,
+      restrictions_lifted: [],
+    },
+    skipped,
   };
 }
 
@@ -378,13 +395,25 @@ const ENTITIES: Readonly<Record<string, string>> = {
   nbsp: " ",
 };
 const ENTITY = /&(#x?[0-9a-f]+|[a-z]+);/gi;
+/** The highest code point a character can have. */
+const MAX_CODE_POINT = 0x10ffff;
+
+/** Half of a surrogate pair, which names no character on its own. */
+function isSurrogate(code: number): boolean {
+  return code >= 0xd800 && code <= 0xdfff;
+}
 
 function decodeEntities(text: string): string {
   return text.replace(ENTITY, (whole, body: string) => {
     if (body.startsWith("#")) {
       const code =
         body[1]?.toLowerCase() === "x" ? Number.parseInt(body.slice(2), 16) : Number(body.slice(1));
-      return Number.isInteger(code) && code > 0 ? String.fromCodePoint(code) : whole;
+      // A code point above the highest one, or inside the surrogate range, is
+      // not a character. Rendering it would raise or leave half a pair in the
+      // text, so it is left written as the page wrote it.
+      const named =
+        Number.isInteger(code) && code > 0 && code <= MAX_CODE_POINT && !isSurrogate(code);
+      return named ? String.fromCodePoint(code) : whole;
     }
     return ENTITIES[body.toLowerCase()] ?? whole;
   });
@@ -449,6 +478,7 @@ function readIngredient(entry: unknown): RecipeIngredient | string {
 
 function readIngredientGroups(published: unknown, skipped: string[]): IngredientGroup[] {
   if (!Array.isArray(published)) {
+    skipped.push("the ingredients arrived in a shape with no lines to read");
     return [];
   }
   const groups: IngredientGroup[] = [];
@@ -473,6 +503,7 @@ function readIngredientGroups(published: unknown, skipped: string[]): Ingredient
 
 function readSteps(published: unknown, skipped: string[]): string[] {
   if (!Array.isArray(published)) {
+    skipped.push("the method arrived in a shape with no steps to read");
     return [];
   }
   const steps: string[] = [];

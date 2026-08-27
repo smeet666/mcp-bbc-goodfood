@@ -181,9 +181,7 @@ function renderAmount(value: number, unit: UnitInfo | null): string {
 
 function requireFactor(factor: number): void {
   if (!Number.isFinite(factor) || factor <= 0) {
-    throw invalidInput(
-      `[invalid_input] The factor must be a finite number above zero, and ${factor} is not.`,
-    );
+    throw invalidInput(`The factor must be a finite number above zero, and ${factor} is not.`);
   }
 }
 

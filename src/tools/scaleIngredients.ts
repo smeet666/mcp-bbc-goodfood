@@ -91,7 +91,7 @@ function readFactor(args: ScaleIngredientsArgs): number {
     if (partial) {
       throw new GoodFoodError(
         "invalid_input",
-        "[invalid_input] Pass either 'factor' or the pair 'from_servings' and 'to_servings', not both: together they state two different multiplications.",
+        "Pass either 'factor' or the pair 'from_servings' and 'to_servings', not both: together they state two different multiplications.",
       );
     }
     return args.factor;
@@ -102,12 +102,12 @@ function readFactor(args: ScaleIngredientsArgs): number {
   if (partial) {
     throw new GoodFoodError(
       "invalid_input",
-      "[invalid_input] 'from_servings' and 'to_servings' state a factor together and neither states one alone, so both are needed.",
+      "'from_servings' and 'to_servings' state a factor together and neither states one alone, so both are needed.",
     );
   }
   throw new GoodFoodError(
     "invalid_input",
-    "[invalid_input] Pass 'factor', or else the pair 'from_servings' and 'to_servings', to say what the list should be scaled by.",
+    "Pass 'factor', or else the pair 'from_servings' and 'to_servings', to say what the list should be scaled by.",
   );
 }
 

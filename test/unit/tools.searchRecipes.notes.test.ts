@@ -39,7 +39,7 @@ function makeReport(overrides: Partial<SearchReport> = {}): SearchReport {
     total_available: 195,
     total_is_ceiling: false,
     rows_seen: results.length,
-    restrictions_dropped: [],
+    restrictions_lifted: [],
     ...overrides,
   };
 }
@@ -115,7 +115,7 @@ describe("search_recipes notes", () => {
 
   it("names the restrictions it dropped, in the caller's own wording", async () => {
     const added = await addedNotes(
-      makeReport({ restrictions_dropped: ["diet", "max_total_minutes"] }),
+      makeReport({ restrictions_lifted: ["diet", "max_total_minutes"] }),
     );
     expect(added).toHaveLength(1);
     expect(added[0]!).toContain("diet");
@@ -123,8 +123,8 @@ describe("search_recipes notes", () => {
   });
 
   it("leaves the dropped-restrictions note out when nothing was dropped", async () => {
-    const note = (await addedNotes(makeReport({ restrictions_dropped: ["diet"] })))[0]!;
-    expect(await notesOf(makeReport({ restrictions_dropped: [] }))).not.toContain(note);
+    const note = (await addedNotes(makeReport({ restrictions_lifted: ["diet"] })))[0]!;
+    expect(await notesOf(makeReport({ restrictions_lifted: [] }))).not.toContain(note);
   });
 
   it("says how many rows it set aside when it set any aside", async () => {
@@ -144,7 +144,7 @@ describe("search_recipes notes", () => {
       total_available: 10_000,
       total_is_ceiling: true,
       rows_seen: 5,
-      restrictions_dropped: ["diet", "max_total_minutes"],
+      restrictions_lifted: ["diet", "max_total_minutes"],
     });
     const { notes, text } = await resultOf(report);
     expect(notes.length).toBeGreaterThan(0);

@@ -56,6 +56,11 @@ const RETRIES_AFTER_SILENCE = 1;
  * Read a Retry-After header, which is either a number of seconds or a date.
  * Returns null when it says neither, so the caller falls back to its own wait.
  */
+/** A count of seconds, as the header spells one. */
+const WHOLE_SECONDS = /^\d+$/;
+/** The same count written as an impossible wait. */
+const SIGNED_SECONDS = /^[+-]\d+(?:\.\d+)?$/;
+
 export function parseRetryAfter(value: string | null, now = Date.now()): number | null {
   if (!value) {
     return null;
@@ -69,16 +74,23 @@ export function parseRetryAfter(value: string | null, now = Date.now()): number 
   // letting a negative one fall through to the date form has it parsed as a
   // year and clamped to zero, which reads as "come back at once" from a header
   // that said something impossible.
-  const seconds = Number(trimmed);
-  if (Number.isFinite(seconds)) {
-    return seconds >= 0 ? Math.round(seconds * 1000) : null;
+  // Digits and nothing else. "0x10" and "1e3" are numbers to a parser and
+  // neither is a count of seconds, so reading one would invent a wait the
+  // header never asked for.
+  if (WHOLE_SECONDS.test(trimmed)) {
+    return Number(trimmed) * 1000;
+  }
+  if (SIGNED_SECONDS.test(trimmed)) {
+    return null;
   }
 
   const at = Date.parse(trimmed);
   if (Number.isNaN(at)) {
     return null;
   }
-  return Math.max(0, at - now);
+  // An instant already gone says the same impossible thing a negative count of
+  // seconds says, and neither means "come back at once".
+  return at > now ? at - now : null;
 }
 
 /**
@@ -281,11 +293,20 @@ export async function fetchText(options: FetchOptions): Promise<string> {
       ]);
 
       if (response.ok) {
+        // The deadline runs against the body too. A transport that answers with
+        // a status and then never delivers the body would otherwise hold this
+        // request open, and the queue behind it with the request.
+        const body = await Promise.race([response.text(), deadline.expired]);
+        // Counted only once the body is in hand: a read whose body failed is
+        // not a read, and pacing must not speed up on the strength of one.
         limiter.succeeded();
-        return await response.text();
+        return body;
       }
 
-      const verdict = await readRefusal(response, url, attempt, maxRetries);
+      const verdict = await Promise.race([
+        readRefusal(response, url, attempt, maxRetries),
+        deadline.expired,
+      ]);
       if (verdict.pushBack) {
         limiter.pushBack();
       }
@@ -295,8 +316,6 @@ export async function fetchText(options: FetchOptions): Promise<string> {
       askedWaitMs = verdict.waitMs;
       lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
-      deadline.clear();
-
       lastError = readFailure(error, { url, attempt, maxRetries, timeoutMs });
       askedWaitMs = backoffMs(attempt);
     } finally {

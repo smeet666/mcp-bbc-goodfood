@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GoodFoodClient, SearchOptions } from "../../src/bbcgoodfood/client.js";
 import { GoodFoodClient as RealClient } from "../../src/bbcgoodfood/client.js";
 import { parseSearchReport, parseSearchRows } from "../../src/bbcgoodfood/parse.js";
-import { parseFailure } from "../../src/errors.js";
+import { GoodFoodError, parseFailure } from "../../src/errors.js";
 import { FACET_NAMES, searchUrl } from "../../src/bbcgoodfood/urls.js";
 import { createLogger, loadConfig } from "../../src/config.js";
 import { createServer } from "../../src/server.js";
@@ -49,7 +49,7 @@ function reportLiteral(overrides: Partial<SearchReport> = {}): SearchReport {
     total_available: 1,
     total_is_ceiling: false,
     rows_seen: 1,
-    restrictions_dropped: [],
+    restrictions_lifted: [],
     ...overrides,
   };
 }
@@ -89,7 +89,7 @@ describe("parseSearchRows on a payload it cannot use", () => {
   }
 
   it("leaves the refusal to parseSearchReport, which throws on a payload with no searchResults", () => {
-    expect(() => parseSearchReport({ filters: [] }, "cake")).toThrow();
+    expect(() => parseSearchReport({ filters: [] }, "cake").report).toThrow();
   });
 
   it("sets aside a row carrying nothing at all, and names it without saying undefined or null", () => {
@@ -104,13 +104,19 @@ describe("parseSearchRows on a payload it cannot use", () => {
 });
 
 describe("searchUrl and the facets it knows", () => {
-  it("ignores a facet whose name is not one it knows, without throwing", () => {
-    const plain = new URL(searchUrl({ search: "cake" }));
-    const withUnknown = new URL(searchUrl({ search: "cake", facets: { not_a_facet: "x" } }));
-    expect([...withUnknown.searchParams.keys()].sort()).toEqual(
-      [...plain.searchParams.keys()].sort(),
-    );
-    expect([...withUnknown.searchParams.values()]).not.toContain("x");
+  it("refuses a facet whose name is not one it knows, naming it", () => {
+    // Dropping it built an address answering a question nobody asked, and the
+    // answer came back as though the restriction had held.
+    let caught: unknown;
+    try {
+      searchUrl({ search: "cake", facets: { not_a_facet: "x" } });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(GoodFoodError);
+    expect((caught as GoodFoodError).code).toBe("invalid_input");
+    expect((caught as GoodFoodError).message).toContain("not_a_facet");
   });
 
   it("carries a parameter for every name it publishes", () => {
@@ -337,7 +343,7 @@ describe("a restriction handed over as undefined", () => {
     const facets = calls[0]?.options?.facets ?? {};
     expect(Object.keys(facets)).not.toContain("diet");
     expect(Object.values(facets)).not.toContain("undefined");
-    expect(result.structuredContent?.["restrictions_dropped"]).toEqual([]);
+    expect(result.structuredContent?.["restrictions_lifted"]).toEqual([]);
   });
 });
 

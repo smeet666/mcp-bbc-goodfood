@@ -40,7 +40,7 @@ interface SearchRowShape {
 interface SearchReportShape {
   results: SearchRowShape[];
   result_count: number;
-  restrictions_dropped: string[];
+  restrictions_lifted: string[];
 }
 
 const structuredOf = <T>(result: { structuredContent?: unknown }): T => {
@@ -109,7 +109,7 @@ describe.skipIf(!process.env.BGF_LIVE)("BBC Good Food, live", () => {
     );
 
     expect(
-      report.restrictions_dropped,
+      report.restrictions_lifted,
       "an unknown diet value was not dropped, so the site stopped answering it with zero",
     ).toContain("diet");
     expect(

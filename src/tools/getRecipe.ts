@@ -119,6 +119,17 @@ export const getRecipeOutputShape = {
 const SUBSCRIPTION_NOTE =
   "This recipe sits behind the site's subscription, so its ingredients and steps are left to the site: its page is where a subscriber reads them.";
 
+const PREMIUM_SERVINGS_NOTE =
+  "The 'servings' argument is left without effect here: this recipe's ingredients sit behind the site's subscription, so there are no ingredients here to put to another number of people.";
+
+/** Why a request for a number of servings did or did not take effect. */
+function pickNote(recipe: Recipe, measure: Yield): string {
+  if (recipe.premium) {
+    return PREMIUM_SERVINGS_NOTE;
+  }
+  return measure.factor === null ? NO_YIELD_NOTE : RECOMPUTED_NOTE;
+}
+
 const NO_YIELD_NOTE =
   "This page states no number of servings, so the ingredients are left exactly as the site publishes them: scaling them would mean inventing the figure they were scaled from.";
 
@@ -126,13 +137,18 @@ const RECOMPUTED_NOTE =
   "These quantities were recomputed by this server, not published by the site. Read 'scaling' on each line: a line marked 'rounded' states a figure a kitchen can work with rather than the exact arithmetic.";
 
 /** What the ingredients were put to, and what they were put from. */
-interface Yield {
+interface Measured {
   original_count: number | null;
   original_text: string | null;
-  requested: number | null;
   unit: string | null;
-  factor: number | null;
 }
+
+/**
+ * A factor exists only where a number of servings was asked for, so the two are
+ * written as one choice rather than as two fields a reader has to check apart.
+ */
+type Yield = Measured &
+  ({ requested: number | null; factor: null } | { requested: number; factor: number });
 
 /**
  * The multiplication a request for a number of servings asks for.
@@ -140,17 +156,42 @@ interface Yield {
  * A recipe whose page states no servings has nothing to multiply from, and a
  * recipe behind the subscription has no ingredients to multiply.
  */
+/** What a page counts its yield in, or null where its wording names nothing. */
+const YIELD_WORD = /\d+\s*(?:-\s*\d+\s*)?([A-Za-z][A-Za-z-]*)/;
+
+/**
+ * The word the page counts its yield in.
+ *
+ * "Serves 4" counts servings, "Makes 12 muffins" counts muffins, and "Cuts into
+ * 16 squares" counts squares. Writing "servings" over all three would put a word
+ * on the page that the page never used.
+ */
+function yieldWord(wording: string | null): string | null {
+  if (wording === null) {
+    return null;
+  }
+  const found = YIELD_WORD.exec(wording)?.[1];
+  if (found !== undefined) {
+    return found.toLowerCase();
+  }
+  return SERVES.test(wording) ? "servings" : null;
+}
+
+/** A page that states a number of servings without naming what it counts. */
+const SERVES = /\bserves\b/i;
+
 function yieldOf(recipe: Recipe, requested: number | undefined): Yield {
   const asked = requested ?? null;
-  const scalable =
-    asked !== null && recipe.yield_count !== null && recipe.yield_count > 0 && !recipe.premium;
-  return {
-    original_count: recipe.yield_count,
+  const from = recipe.yield_count;
+  const measured: Measured = {
+    original_count: from,
     original_text: recipe.yield_text,
-    requested: asked,
-    unit: recipe.yield_count === null ? null : "servings",
-    factor: scalable && recipe.yield_count !== null ? asked / recipe.yield_count : null,
+    unit: yieldWord(recipe.yield_text),
   };
+  if (asked === null || from === null || from <= 0 || recipe.premium) {
+    return { ...measured, requested: asked, factor: null };
+  }
+  return { ...measured, requested: asked, factor: asked / from };
 }
 
 function scaleGroups(
@@ -182,9 +223,25 @@ interface WrittenGroup {
   ingredients: readonly { text: string }[];
 }
 
-function renderRecipe(recipe: Recipe, groups: readonly WrittenGroup[]): string {
+/**
+ * The yield the rendered quantities answer to.
+ *
+ * Printing the site's own wording above quantities put to another number of
+ * people states a yield those quantities do not serve, and the block is what a
+ * text-only client reads.
+ */
+function yieldLine(recipe: Recipe, measure: Yield): string {
+  if (measure.factor === null) {
+    return recipe.yield_text ?? "";
+  }
+  const word = measure.unit ?? "servings";
+  const from = recipe.yield_text === null ? "" : `, recomputed from ${recipe.yield_text}`;
+  return `Serves ${measure.requested} ${word}${from}`;
+}
+
+function renderRecipe(recipe: Recipe, groups: readonly WrittenGroup[], measure: Yield): string {
   const marks = [
-    recipe.yield_text ?? "",
+    yieldLine(recipe, measure),
     recipe.total_minutes === null ? "" : `${recipe.total_minutes} min`,
     recipe.difficulty ?? "",
     recipe.rating === null ? "" : `${recipe.rating}/5`,
@@ -223,8 +280,8 @@ export async function runGetRecipe(
 
   const asked = parsed.data.servings;
   const measure = yieldOf(recipe, asked);
-  if (asked !== undefined && !recipe.premium) {
-    notes.push(measure.factor === null ? NO_YIELD_NOTE : RECOMPUTED_NOTE);
+  if (asked !== undefined) {
+    notes.push(pickNote(recipe, measure));
   }
 
   const ingredients =
@@ -232,7 +289,7 @@ export async function runGetRecipe(
 
   return ok(
     { ...recipe, yield: measure, ingredients, source: SOURCE_NAME, notes },
-    renderRecipe(recipe, ingredients),
+    renderRecipe(recipe, ingredients, measure),
     { notes },
   );
 }

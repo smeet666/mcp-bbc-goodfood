@@ -20,6 +20,14 @@ export const scaleIngredientsDescription =
   "and every line says under 'scaling' whether the arithmetic landed exactly, whether the figure was " +
   "moved to stay usable in a kitchen, or whether the line carried nothing to multiply.";
 
+/**
+ * What a kitchen can want. Beyond these the arithmetic stops being about food:
+ * a factor of 1e308 overflows the multiplication, and the caller reads a
+ * protocol error where a refusal was owed.
+ */
+const MIN_FACTOR = 0.001;
+const MAX_FACTOR = 1000;
+
 export const scaleIngredientsInput = {
   ingredients: z
     .array(z.string().trim().min(1).max(300))
@@ -29,7 +37,8 @@ export const scaleIngredientsInput = {
   factor: z
     .number()
     .finite()
-    .positive()
+    .min(MIN_FACTOR)
+    .max(MAX_FACTOR)
     .optional()
     .describe("What to multiply every quantity by. Pass this or the servings pair, never both."),
   from_servings: z
@@ -111,8 +120,19 @@ function readFactor(args: ScaleIngredientsArgs): number {
   );
 }
 
+/**
+ * A factor as the caller gave it.
+ *
+ * Rounding to two decimals wrote "Scaled by 0" for a factor of 0.004, which is a
+ * multiplication nobody asked for and one the lines below it contradict.
+ */
+function written(factor: number): string {
+  const rounded = Math.round(factor * 100) / 100;
+  return String(rounded === 0 ? factor : rounded);
+}
+
 function render(factor: number, lines: readonly ScaledIngredient[]): string {
-  const head = `Scaled by ${Math.round(factor * 100) / 100}`;
+  const head = `Scaled by ${written(factor)}`;
   return [head, ...lines.map((line) => `- ${line.text}`)].join("\n");
 }
 

@@ -129,7 +129,7 @@ describe("parseFilterGroups on the site-wide payload", () => {
 
 describe("parseFilterReport", () => {
   it("reports the query it was given", () => {
-    const report = parseFilterReport(scoped, "chicken");
+    const report = parseFilterReport(scoped, "chicken").report;
 
     expect(report.query).toBe("chicken");
   });
@@ -137,28 +137,28 @@ describe("parseFilterReport", () => {
   // Rule 10: the absence of the argument is how the site-wide scope is asked
   // for, and null is how the answer says so.
   it("reports a null query for the site-wide scope", () => {
-    const report = parseFilterReport(sitewide, null);
+    const report = parseFilterReport(sitewide, null).report;
 
     expect(report.query).toBeNull();
   });
 
   // Rule 11.
   it("counts the filters it rendered", () => {
-    const report = parseFilterReport(scoped, "chicken");
+    const report = parseFilterReport(scoped, "chicken").report;
 
     expect(report.filters).toHaveLength(9);
     expect(report.filter_count).toBe(report.filters.length);
   });
 
   it("renders the same groups as parseFilterGroups", () => {
-    const report = parseFilterReport(scoped, "chicken");
+    const report = parseFilterReport(scoped, "chicken").report;
     const { groups } = parseFilterGroups(scoped);
 
     expect(report.filters).toEqual(groups);
   });
 
   it("reads the total of the scoped payload, which is below the ceiling", () => {
-    const report = parseFilterReport(scoped, "chicken");
+    const report = parseFilterReport(scoped, "chicken").report;
 
     expect(report.total_available).toBe(151);
     expect(report.total_is_ceiling).toBe(false);
@@ -167,15 +167,15 @@ describe("parseFilterReport", () => {
   // Rule 5: the site serves exactly this many rows and stops, so the total is a
   // floor rather than a count.
   it("reads the total of the site-wide payload as the service ceiling", () => {
-    const report = parseFilterReport(sitewide, null);
+    const report = parseFilterReport(sitewide, null).report;
 
     expect(report.total_available).toBe(SERVED_ROW_CEILING);
     expect(report.total_is_ceiling).toBe(true);
   });
 
   it("carries one filter fewer on the site-wide payload than on the scoped one", () => {
-    const scopedReport = parseFilterReport(scoped, "chicken");
-    const sitewideReport = parseFilterReport(sitewide, null);
+    const scopedReport = parseFilterReport(scoped, "chicken").report;
+    const sitewideReport = parseFilterReport(sitewide, null).report;
 
     expect(sitewideReport.filter_count).toBe(scopedReport.filter_count - 1);
   });

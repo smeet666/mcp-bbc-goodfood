@@ -28,26 +28,49 @@ export interface ClientOptions {
   fetchImpl?: typeof fetch;
 }
 
+/**
+ * What a read produced, kept together.
+ *
+ * The lines an answer had to set aside qualify it, so they are stored beside it:
+ * a second read of the same page is as qualified as the first, where storing the
+ * data alone made the same question answer plainly the second time round.
+ */
+interface Kept<T> {
+  report: T;
+  skipped: string[];
+}
+
+/** A read, carrying what it set aside only when it set something aside. */
+function told<T>(data: T, cached: boolean, skipped: readonly string[]): Read<T> {
+  return skipped.length > 0 ? { data, cached, skipped: [...skipped] } : { data, cached };
+}
+
 export class GoodFoodClient {
   private readonly config: Config;
   private readonly logger: Logger;
   private readonly fetchImpl: typeof fetch | undefined;
   private readonly limiter: RateLimiter;
-  private readonly store: Cache<FilterReport>;
-  private readonly searches: Cache<SearchReport>;
-  private readonly recipes: Cache<Recipe>;
+  private readonly store: Cache<Kept<FilterReport>>;
+  private readonly searches: Cache<Kept<SearchReport>>;
+  private readonly recipes: Cache<Kept<Recipe>>;
 
   constructor(options: ClientOptions) {
     this.config = options.config;
     this.logger = options.logger;
     this.fetchImpl = options.fetchImpl;
     this.limiter = new RateLimiter({ intervalMs: options.config.minIntervalMs });
-    this.store = new Cache<FilterReport>(options.config.cacheTtlMs, options.config.cacheMaxEntries);
-    this.searches = new Cache<SearchReport>(
+    this.store = new Cache<Kept<FilterReport>>(
       options.config.cacheTtlMs,
       options.config.cacheMaxEntries,
     );
-    this.recipes = new Cache<Recipe>(options.config.cacheTtlMs, options.config.cacheMaxEntries);
+    this.searches = new Cache<Kept<SearchReport>>(
+      options.config.cacheTtlMs,
+      options.config.cacheMaxEntries,
+    );
+    this.recipes = new Cache<Kept<Recipe>>(
+      options.config.cacheTtlMs,
+      options.config.cacheMaxEntries,
+    );
   }
 
   /**
@@ -64,7 +87,7 @@ export class GoodFoodClient {
     const stored = this.store.get(url);
     if (stored) {
       this.logger.debug(`served from the store: ${url}`);
-      return { data: stored, cached: true };
+      return told(stored.report, true, stored.skipped);
     }
 
     const payload = await this.limiter.schedule(() =>
@@ -81,9 +104,9 @@ export class GoodFoodClient {
 
     // Parsed before it is stored, so an answer nobody could read is never served
     // back for the rest of the entry's lifetime.
-    const report = parseFilterReport(payload, scope);
-    this.store.set(url, report);
-    return { data: report, cached: false };
+    const { report, skipped } = parseFilterReport(payload, scope);
+    this.store.set(url, { report, skipped });
+    return told(report, false, skipped);
   }
 
   /**
@@ -110,8 +133,9 @@ export class GoodFoodClient {
 
     const again = await this.readSearch(query, options, {});
     return {
-      data: { ...again.data, restrictions_dropped: restricted },
+      data: { ...again.data, restrictions_lifted: restricted },
       cached: again.cached,
+      ...(again.skipped ? { skipped: again.skipped } : {}),
     };
   }
 
@@ -131,7 +155,7 @@ export class GoodFoodClient {
     const stored = this.searches.get(url);
     if (stored) {
       this.logger.debug(`served from the store: ${url}`);
-      return { data: stored, cached: true };
+      return told(stored.report, true, stored.skipped);
     }
 
     const payload = await this.limiter.schedule(() =>
@@ -146,9 +170,9 @@ export class GoodFoodClient {
       }),
     );
 
-    const report = parseSearchReport(payload, query);
-    this.searches.set(url, report);
-    return { data: report, cached: false };
+    const { report, skipped } = parseSearchReport(payload, query);
+    this.searches.set(url, { report, skipped });
+    return told(report, false, skipped);
   }
 
   /**
@@ -164,7 +188,7 @@ export class GoodFoodClient {
     const stored = this.recipes.get(url);
     if (stored) {
       this.logger.debug(`served from the store: ${url}`);
-      return { data: stored, cached: true };
+      return told(stored.report, true, stored.skipped);
     }
 
     const html = await this.limiter.schedule(() =>
@@ -182,10 +206,8 @@ export class GoodFoodClient {
     // Parsed before it is stored, so a page nobody could read is never served
     // back for the rest of the entry's lifetime.
     const { recipe, skipped } = parseRecipe(html, path);
-    this.recipes.set(url, recipe);
-    return skipped.length > 0
-      ? { data: recipe, cached: false, skipped }
-      : { data: recipe, cached: false };
+    this.recipes.set(url, { report: recipe, skipped });
+    return told(recipe, false, skipped);
   }
 
   /** The spacing in force, reported rather than guessed. */

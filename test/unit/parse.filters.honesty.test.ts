@@ -178,7 +178,7 @@ describe("a group left with no option is kept, empty", () => {
   });
 
   it("renders the four groups the partial payload leaves standing", () => {
-    const report = parseFilterReport(partial, "supper");
+    const report = parseFilterReport(partial, "supper").report;
 
     expect(report.filters.map((group) => group.name)).toEqual([
       "diet",
@@ -192,28 +192,28 @@ describe("a group left with no option is kept, empty", () => {
 
 describe("rule 5: total_is_ceiling marks the served-row ceiling", () => {
   it("is true at the ceiling itself", () => {
-    const report = parseFilterReport(payload([], SERVED_ROW_CEILING), null);
+    const report = parseFilterReport(payload([], SERVED_ROW_CEILING), null).report;
 
     expect(report.total_available).toBe(SERVED_ROW_CEILING);
     expect(report.total_is_ceiling).toBe(true);
   });
 
   it("is false one row below the ceiling", () => {
-    const report = parseFilterReport(payload([], SERVED_ROW_CEILING - 1), null);
+    const report = parseFilterReport(payload([], SERVED_ROW_CEILING - 1), null).report;
 
     expect(report.total_available).toBe(9999);
     expect(report.total_is_ceiling).toBe(false);
   });
 
   it("is false one row above the ceiling", () => {
-    const report = parseFilterReport(payload([], SERVED_ROW_CEILING + 1), null);
+    const report = parseFilterReport(payload([], SERVED_ROW_CEILING + 1), null).report;
 
     expect(report.total_available).toBe(10_001);
     expect(report.total_is_ceiling).toBe(false);
   });
 
   it("is false when no total was readable", () => {
-    const report = parseFilterReport(payload([], undefined), null);
+    const report = parseFilterReport(payload([], undefined), null).report;
 
     expect(report.total_available).toBeNull();
     expect(report.total_is_ceiling).toBe(false);
@@ -222,7 +222,7 @@ describe("rule 5: total_is_ceiling marks the served-row ceiling", () => {
 
 describe("rule 7: filters absent or not an array renders an empty list", () => {
   it("renders an empty list for the payload carrying no filters key", () => {
-    const report = parseFilterReport(absent, "chicken");
+    const report = parseFilterReport(absent, "chicken").report;
 
     expect(report.filters).toEqual([]);
     expect(report.filter_count).toBe(0);
@@ -231,7 +231,7 @@ describe("rule 7: filters absent or not an array renders an empty list", () => {
 
   it("renders an empty list for a payload whose filters is not an array", () => {
     for (const shape of ["nope", 42, {}, null, true]) {
-      const report = parseFilterReport(payload(shape, 5), "chicken");
+      const report = parseFilterReport(payload(shape, 5), "chicken").report;
 
       expect(report.filters).toEqual([]);
       expect(report.filter_count).toBe(0);
@@ -240,7 +240,7 @@ describe("rule 7: filters absent or not an array renders an empty list", () => {
 
   it("renders an empty list, without discarding anything, for a genuine absence of facets", () => {
     const { groups, skipped } = parseFilterGroups(none);
-    const report = parseFilterReport(none, "zzzz");
+    const report = parseFilterReport(none, "zzzz").report;
 
     expect(groups).toEqual([]);
     expect(skipped).toHaveLength(0);
@@ -261,7 +261,7 @@ describe("rule 7: filters absent or not an array renders an empty list", () => {
 
 describe("rule 8: a payload without searchResults is a parse failure", () => {
   it("throws GoodFoodError with code parse_failure on the unreadable payload", () => {
-    const error = thrownBy(() => parseFilterReport(unreadable, "chicken"));
+    const error = thrownBy(() => parseFilterReport(unreadable, "chicken").report);
 
     expect(error).toBeInstanceOf(GoodFoodError);
     expect((error as GoodFoodError).name).toBe("GoodFoodError");
@@ -270,7 +270,7 @@ describe("rule 8: a payload without searchResults is a parse failure", () => {
 
   it("throws rather than disguising a breakdown as an empty answer", () => {
     for (const shape of [{}, { filters: [] }, { searchResults: null }, { searchResults: "nope" }]) {
-      const error = thrownBy(() => parseFilterReport(shape, null));
+      const error = thrownBy(() => parseFilterReport(shape, null).report);
 
       expect(error).toBeInstanceOf(GoodFoodError);
       expect((error as GoodFoodError).code).toBe("parse_failure");
@@ -281,13 +281,13 @@ describe("rule 8: a payload without searchResults is a parse failure", () => {
 describe("rule 9: total_available is null unless the total is a whole count", () => {
   it("is null when totalItems is absent", () => {
     expect(
-      parseFilterReport({ searchResults: { limit: 30, items: [] } }, null).total_available,
+      parseFilterReport({ searchResults: { limit: 30, items: [] } }, null).report.total_available,
     ).toBeNull();
   });
 
   it("is null when totalItems is negative, fractional, a string or NaN", () => {
     for (const totalItems of [-1, -10_000, 12.5, "151", "", Number.NaN, true, null, {}]) {
-      const report = parseFilterReport(payload([], totalItems), null);
+      const report = parseFilterReport(payload([], totalItems), null).report;
 
       expect(report.total_available).toBeNull();
       expect(report.total_is_ceiling).toBe(false);
@@ -295,7 +295,7 @@ describe("rule 9: total_available is null unless the total is a whole count", ()
   });
 
   it("reads zero as zero, since no recipe matched is a real answer", () => {
-    const report = parseFilterReport(payload([], 0), "zzzz");
+    const report = parseFilterReport(payload([], 0), "zzzz").report;
 
     expect(report.total_available).toBe(0);
   });
@@ -311,7 +311,7 @@ describe("skipped is absent when nothing was discarded", () => {
   // The report never carries an empty list of discards: a caller reads the
   // absence of the field, rather than an empty array that looks like a finding.
   it("leaves no skipped field on the report of a whole payload", () => {
-    const report = parseFilterReport(fixture("filters-scoped.json"), "chicken");
+    const report = parseFilterReport(fixture("filters-scoped.json"), "chicken").report;
 
     expect(Object.hasOwn(report, "skipped")).toBe(false);
   });

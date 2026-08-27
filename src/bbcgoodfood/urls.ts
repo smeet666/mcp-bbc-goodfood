@@ -6,6 +6,8 @@
  * byte turns a search into a malformed request the site refuses.
  */
 
+import { invalidInput } from "../errors.js";
+
 export const SITE_ORIGIN = "https://www.bbcgoodfood.com";
 
 /** The route the site's own front end reads its search results from. */
@@ -42,6 +44,29 @@ const FACETS: Readonly<Record<string, FacetShape>> = {
 /** The restriction names a search accepts, which is what a refusal names back. */
 export const FACET_NAMES: readonly string[] = Object.keys(FACETS);
 
+/**
+ * The argument that restricts an axis the site publishes, read the other way.
+ *
+ * The site names its axes for itself, and five of the nine name no argument at
+ * all. Handing one back as though a search took it sends a caller to a refusal,
+ * or worse: the site counts a total time in seconds and the argument in
+ * minutes, so a value copied across restricts a search to a bound nobody meant.
+ */
+const ARGUMENT_FOR: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(FACETS).map(([argument, shape]) => [shape.param, argument]),
+);
+
+/** The argument that restricts this axis, or null where a search takes none. */
+export function argumentForAxis(axis: string): string | null {
+  return ARGUMENT_FOR[axis] ?? null;
+}
+
+/** Whether a value of this axis needs converting before it reaches its argument. */
+export function axisValueTravels(axis: string): boolean {
+  const argument = ARGUMENT_FOR[axis];
+  return argument === undefined || FACETS[argument]?.form === "text";
+}
+
 export interface SearchQuery {
   /** Free text. An empty string asks the site for its unfiltered listing. */
   search: string;
@@ -68,7 +93,11 @@ export function searchUrl(query: SearchQuery): string {
   for (const [name, value] of Object.entries(query.facets ?? {})) {
     const shape = FACETS[name];
     if (!shape) {
-      continue;
+      // Skipping it would build an address that answers a question nobody
+      // asked, and hand the answer back as though the restriction had held.
+      throw invalidInput(
+        `No restriction is named '${name}'. The ones a search takes are ${FACET_NAMES.join(", ")}.`,
+      );
     }
     url.searchParams.set(
       shape.param,

@@ -82,7 +82,7 @@ const clientServing = (rows: SearchRow[], skipped: string[]): Client => {
       total_available: 12,
       total_is_ceiling: false,
       rows_seen: rows.length + skipped.length,
-      restrictions_dropped: [],
+      restrictions_lifted: [],
     },
     cached: false,
     skipped,

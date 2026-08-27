@@ -65,7 +65,7 @@ function makeReport(overrides: Partial<SearchReport> = {}): SearchReport {
     total_available: 195,
     total_is_ceiling: false,
     rows_seen: results.length,
-    restrictions_dropped: [],
+    restrictions_lifted: [],
     ...overrides,
   };
 }

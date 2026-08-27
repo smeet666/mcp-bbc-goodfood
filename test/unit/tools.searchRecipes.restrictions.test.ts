@@ -55,7 +55,7 @@ function report(): SearchReport {
     total_available: 12,
     total_is_ceiling: false,
     rows_seen: 1,
-    restrictions_dropped: [],
+    restrictions_lifted: [],
   };
 }
 

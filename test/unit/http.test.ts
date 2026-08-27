@@ -123,15 +123,17 @@ describe("parseRetryAfter", () => {
     expect(parseRetryAfter(future)).toBe(90_000);
   });
 
-  it("reads a date already gone as no wait at all", () => {
+  it("reads a date already gone as no usable wait, the way a negative count is", () => {
+    // An instant already past says the same impossible thing a negative count of
+    // seconds says, and neither of them means "come back at once".
     const past = new Date(NOW.getTime() - 90_000).toUTCString();
-    expect(parseRetryAfter(past)).toBe(0);
+    expect(parseRetryAfter(past)).toBeNull();
   });
 
   it("takes `now` as the present for the dated form", () => {
     const stamp = new Date(NOW.getTime() + 90_000).toUTCString();
     expect(parseRetryAfter(stamp, NOW.getTime() + 30_000)).toBe(60_000);
-    expect(parseRetryAfter(stamp, NOW.getTime() + 200_000)).toBe(0);
+    expect(parseRetryAfter(stamp, NOW.getTime() + 200_000)).toBeNull();
   });
 
   it("rejects an absent header, an empty string and any word", () => {

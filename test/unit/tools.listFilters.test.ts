@@ -157,7 +157,11 @@ describe("runListFilters — the shape it hands back", () => {
     expect(filters).toHaveLength(2);
     for (const raw of filters) {
       const g = asRecord(raw);
-      expect(Object.keys(g).sort()).toEqual(["label", "name", "option_count", "options"].sort());
+      expect(Object.keys(g).sort()).toEqual(
+        // The axis also names the search argument that restricts it, since the
+        // site's own name for an axis is not one a search takes.
+        ["argument", "label", "name", "option_count", "options"].sort(),
+      );
       expect(typeof g["name"]).toBe("string");
       expect(typeof g["label"]).toBe("string");
       expect(typeof g["option_count"]).toBe("number");

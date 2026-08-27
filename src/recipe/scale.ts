@@ -230,7 +230,14 @@ export function scaleLine(line: string, factor: number): ScaledIngredient {
   };
 }
 
-/** Scale one line already split into its parts, as a recipe page publishes it. */
+/**
+ * Scale one line already split into its parts, as a recipe page publishes it.
+ *
+ * The site's own wording is kept wherever it can be read, because its parts drop
+ * words its line carries: "1small onion" is published with "onion" as the item,
+ * and rebuilding the line from the item alone would serve a cook an onion of no
+ * particular size. The parts are used when the line itself states no quantity.
+ */
 export function scaleParts(
   parts: {
     text: string;
@@ -243,15 +250,9 @@ export function scaleParts(
 ): ScaledIngredient {
   requireFactor(factor);
 
-  if (parts.amount === null) {
-    return {
-      text: parts.text,
-      original: parts.text,
-      scaling: "unscaled",
-      amount: null,
-      amount_max: null,
-      unit: null,
-    };
+  const written = scaleLine(parts.text, factor);
+  if (written.scaling !== "unscaled" || parts.amount === null) {
+    return written;
   }
 
   const unit = parts.unit === null ? null : lookupUnit(parts.unit);

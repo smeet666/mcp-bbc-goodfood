@@ -53,21 +53,6 @@ export interface FilterReport {
    * for one search, so the real figure is that number or more.
    */
   total_is_ceiling: boolean;
-  /** Rows the site served on the first page of this search. */
-  rows_seen: number;
-  /**
-   * How many of those rows carry a word of the search.
-   *
-   * The site matches fragments and answers a term it holds nothing for with a
-   * count and a page of rows all the same, marking nothing as a miss. Counting
-   * what the rows actually carry is the only thing that tells the two apart,
-   * and it is rendered as a count rather than as a verdict: a reader seeing
-   * two rows out of thirty judges better than a flag that judges for them.
-   *
-   * Null when there is nothing to measure, which is a search with no query and
-   * a query holding no word long enough to look for.
-   */
-  matched_rows: number | null;
 }
 
 /**
@@ -75,3 +60,43 @@ export interface FilterReport {
  * lands exactly here was cut, so it states a floor rather than a count.
  */
 export const SERVED_ROW_CEILING = 10_000;
+
+/** One row of a search listing, carrying what it takes to pick one out of many. */
+export interface SearchRow {
+  /** Pass this back to read the recipe. */
+  id: string;
+  title: string;
+  /** The public page. Show this when citing the recipe. */
+  url: string;
+  image_url: string | null;
+  /** 1 to 5, as the site publishes it. Null when it published none. */
+  rating: number | null;
+  /** How many readers rated it. Null when the site published no figure. */
+  rating_count: number | null;
+  /** True when the recipe sits behind the site's subscription. */
+  premium: boolean;
+  /** Minutes the site states for the whole recipe. Null when it states none. */
+  total_minutes: number | null;
+  /** The site's own wording, such as "Easy". Null when it states none. */
+  difficulty: string | null;
+  author: string | null;
+}
+
+/** What a search establishes, and what it refuses to overstate about it. */
+export interface SearchReport {
+  query: string;
+  results: SearchRow[];
+  /** Rows rendered, after whatever could not be read was set aside. */
+  result_count: number;
+  total_available: number | null;
+  total_is_ceiling: boolean;
+  /** Rows the site served, before anything was set aside. */
+  rows_seen: number;
+  /**
+   * Restrictions the site could not answer, dropped so the search could run.
+   *
+   * Named with the argument a caller wrote rather than with the site's own
+   * parameter, since the first is what they would have to change.
+   */
+  restrictions_dropped: string[];
+}

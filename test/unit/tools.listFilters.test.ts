@@ -71,9 +71,6 @@ function report(over: Partial<FilterReport> = {}): FilterReport {
     // biome-ignore lint/nursery/useNullishCoalescing: `??` would swallow an explicit null, which this field carries on purpose.
     total_available: over.total_available === undefined ? 151 : over.total_available,
     total_is_ceiling: over.total_is_ceiling ?? false,
-    rows_seen: over.rows_seen ?? 0,
-    // biome-ignore lint/nursery/useNullishCoalescing: `??` would swallow an explicit null, which this field carries on purpose.
-    matched_rows: over.matched_rows === undefined ? null : over.matched_rows,
   };
 }
 

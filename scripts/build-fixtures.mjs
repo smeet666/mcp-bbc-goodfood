@@ -84,6 +84,25 @@ const item = (id, title, slug, rating, isPremium = false) => ({
   image: { alt: title, height: 400, width: 600 },
 });
 
+/** A row as the search route serves it, with the parts a listing renders. */
+const row = (id, title, slug, over = {}) => ({
+  ...item(id, title, slug, over.rating === undefined ? 4.2 : over.rating, over.isPremium ?? false),
+  authorName: over.authorName === undefined ? "Wren Holloway" : over.authorName,
+  image: {
+    alt: title,
+    height: 400,
+    width: 440,
+    url: `https://images.example.invalid/${slug}.jpg`,
+  },
+  terms:
+    over.terms === undefined
+      ? [
+          { slug: "time", display: "50 mins" },
+          { slug: "skillLevel", display: "Easy" },
+        ]
+      : over.terms,
+});
+
 const envelope = ({ totalItems, items = [], filters = [], limit = 30 }) => ({
   tabs: [{ label: "Recipes", identifier: "recipe", isDefault: true, isCurrent: true }],
   filters,
@@ -165,6 +184,63 @@ const fixtures = {
 
   /** An answer whose search block is missing, which no reader can repair. */
   "filters-unreadable.json": { tabs: [], filters: scopedGroups },
+
+  /** A full page of rows, with more pages behind it. */
+  "search-page.json": envelope({
+    totalItems: 195,
+    filters: scopedGroups,
+    items: [
+      row("301", "Keldish greens with chorizo", "keldish-greens-chorizo"),
+      row("302", "Easy keldish bravas", "easy-keldish-bravas", { rating: 3.85 }),
+      row("303", "Marran almond wafers", "marran-almond-wafers", { rating: null }),
+      row("304", "Keldish pepper broth", "keldish-pepper-broth", {
+        isPremium: true,
+        terms: [
+          { slug: "time", display: "1 hr 20 mins" },
+          { slug: "skillLevel", display: "More effort" },
+        ],
+      }),
+      row("305", "Ostrean plum tart", "ostrean-plum-tart", { authorName: null }),
+    ],
+  }),
+
+  /**
+   * A restriction the site did not understand.
+   *
+   * It answers a facet value it holds nothing for with a count of zero and an
+   * empty page, saying nothing about which restriction it failed to read.
+   */
+  "search-restricted-none.json": envelope({ totalItems: 0, filters: [], items: [] }),
+
+  /** The same search once the restriction is dropped. */
+  "search-restriction-dropped.json": envelope({
+    totalItems: 12,
+    filters: scopedGroups,
+    items: [
+      row("311", "Keldish greens with chorizo", "keldish-greens-chorizo"),
+      row("312", "Keldish pepper broth", "keldish-pepper-broth"),
+    ],
+  }),
+
+  /**
+   * Rows a reader cannot render whole.
+   *
+   * A row with no address cannot be cited, one with no title cannot be told
+   * apart, and an identifier is what a later read needs back. Each is a
+   * different kind of gap, and none of them is an empty search.
+   */
+  "search-degraded.json": envelope({
+    totalItems: 6,
+    filters: [],
+    items: [
+      row("321", "Keldish greens", "keldish-greens"),
+      { id: "322", title: "No address at all", isPremium: false, rating: null },
+      { id: "323", url: "https://www.bbcgoodfood.com/recipes/no-title", rating: null },
+      { title: "No identifier", url: "https://www.bbcgoodfood.com/recipes/no-id" },
+      "not a row at all",
+      null,
+    ],
+  }),
 };
 
 for (const [name, value] of Object.entries(fixtures)) {

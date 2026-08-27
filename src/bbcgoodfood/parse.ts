@@ -7,21 +7,11 @@
  */
 
 import { parseFailure } from "../errors.js";
-import type { FilterGroup, FilterOption, FilterReport } from "../types.js";
+import type { FilterGroup, FilterOption, FilterReport, SearchReport, SearchRow } from "../types.js";
 import { SERVED_ROW_CEILING } from "../types.js";
 
-/**
- * The shortest word worth looking for inside a row.
- *
- * The site matches on fragments, which is how a term it holds nothing for still
- * comes back with a page of rows. Looking for a fragment of two characters here
- * would repeat that mistake: it turns up inside unrelated words and would make
- * everything look like a match.
- */
-const SHORTEST_WORD = 3;
-
-const DIACRITICS = /[\u0300-\u036f]/g;
-const BETWEEN_WORDS = /[^a-z0-9]+/;
+const HOURS = /(\d+)\s*(?:hrs?|hours?)\b/i;
+const MINUTES = /(\d+)\s*(?:mins?|minutes?)\b/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -90,57 +80,6 @@ function readOptions(
   return options;
 }
 
-/** The words of a text, lowercased and stripped of accents. */
-function wordsOf(text: string): string[] {
-  return text
-    .normalize("NFD")
-    .replace(DIACRITICS, "")
-    .toLowerCase()
-    .split(BETWEEN_WORDS)
-    .filter((word) => word !== "");
-}
-
-/**
- * Whether a row carries a word of the search.
- *
- * Either word may be the longer one, so a search for a singular still finds the
- * plural the title uses. Both sides have to reach the floor, which is what keeps
- * a three-letter opening from matching every word that happens to start the same
- * way. Title and address are read together, since a slug often spells out what a
- * title writes another way.
- */
-function rowCarries(row: unknown, wanted: readonly string[]): boolean {
-  if (!isRecord(row)) {
-    return false;
-  }
-  const title = typeof row.title === "string" ? row.title : "";
-  const url = typeof row.url === "string" ? row.url : "";
-  return wordsOf(`${title} ${url}`).some(
-    (word) =>
-      word.length >= SHORTEST_WORD &&
-      wanted.some((sought) => word.startsWith(sought) || sought.startsWith(word)),
-  );
-}
-
-/**
- * How many of the rows the site served carry a word of the search.
- *
- * Null says there was nothing to measure, which is a different statement from
- * zero: a search with no query, or one whose every word is too short to look
- * for, was never weighed against anything.
- */
-function countCarryingRows(rows: readonly unknown[], query: string | null): number | null {
-  if (query === null) {
-    return null;
-  }
-  const wanted = wordsOf(query).filter((word) => word.length >= SHORTEST_WORD);
-  if (wanted.length === 0) {
-    return null;
-  }
-  // A row counts once, however many words of the search it carries.
-  return rows.filter((row) => rowCarries(row, wanted)).length;
-}
-
 /**
  * Read the facet groups the payload publishes, naming whatever was discarded.
  *
@@ -197,7 +136,6 @@ export function parseFilterReport(payload: unknown, query: string | null): Filte
 
   const { groups } = parseFilterGroups(payload);
   const total = readCount(results.totalItems);
-  const rows: unknown[] = Array.isArray(results.items) ? results.items : [];
 
   return {
     query,
@@ -207,7 +145,175 @@ export function parseFilterReport(payload: unknown, query: string | null): Filte
     // A total that lands exactly on the ceiling was cut there, so it states a
     // floor. Reporting it as a catalogue would invent what the site withheld.
     total_is_ceiling: total === SERVED_ROW_CEILING,
-    rows_seen: rows.length,
-    matched_rows: countCarryingRows(rows, query),
+  };
+}
+
+/**
+ * The minutes a row states for the whole recipe.
+ *
+ * The site writes them as "50 mins", "1 hr" or "1 hr 20 mins", and the two parts
+ * add up. A wording carrying neither is unreadable rather than instantaneous, so
+ * it yields null: a zero here would say the recipe takes no time at all.
+ */
+function readMinutes(display: unknown): number | null {
+  if (typeof display !== "string") {
+    return null;
+  }
+  const hours = HOURS.exec(display);
+  const minutes = MINUTES.exec(display);
+  if (!(hours || minutes)) {
+    return null;
+  }
+  return Number(hours?.[1] ?? 0) * 60 + Number(minutes?.[1] ?? 0);
+}
+
+/** The wording a row publishes under one of its own term slugs. */
+function readTerm(row: Record<string, unknown>, slug: string): string | null {
+  const terms: unknown = row.terms;
+  if (!Array.isArray(terms)) {
+    return null;
+  }
+  for (const term of terms) {
+    if (isRecord(term) && term.slug === slug) {
+      return readText(term.display);
+    }
+  }
+  return null;
+}
+
+function readRating(row: Record<string, unknown>): { value: number | null; count: number | null } {
+  const rating: unknown = row.rating;
+  if (!isRecord(rating)) {
+    return { value: null, count: null };
+  }
+
+  const count = readCount(rating.ratingCount);
+  const stated = typeof rating.ratingValue === "number" ? rating.ratingValue : null;
+
+  /*
+   * A rating runs from one to five and needs someone to have given it. Zero on
+   * either side says nobody judged the recipe, which is a different statement
+   * from a poor score, and rendering it as a score puts an unjudged recipe at
+   * the bottom of a ranking it never entered.
+   *
+   * The two fields part company here on purpose: the rating goes, and the
+   * number of people who gave one stays at zero. Nobody voting is a figure the
+   * site established; what they would have said is not.
+   */
+  const value = stated === null || stated === 0 || count === null || count === 0 ? null : stated;
+  return { value, count };
+}
+
+/**
+ * One row, or the wording that says why it could not be rendered.
+ *
+ * Three fields make a row usable and each answers a different need: the
+ * identifier is what a later read asks for, the title is what tells one row from
+ * another, and the address is what a reader cites. A row missing any of them is
+ * set aside rather than rendered half-empty.
+ */
+function readRow(entry: unknown): SearchRow | string {
+  if (!isRecord(entry)) {
+    return "a row arrived in a shape with no fields to read";
+  }
+
+  const id = readText(entry.id);
+  const title = readText(entry.title);
+  const url = readText(entry.url);
+  if (id === null || title === null || url === null) {
+    return sayWhyDropped({ id, title, url });
+  }
+
+  const image: unknown = entry.image;
+  const rating = readRating(entry);
+  return {
+    id,
+    title,
+    url,
+    image_url: isRecord(image) ? readText(image.url) : null,
+    rating: rating.value,
+    rating_count: rating.count,
+    premium: entry.isPremium === true,
+    total_minutes: readMinutes(readTerm(entry, "time")),
+    difficulty: readTerm(entry, "skillLevel"),
+    author: readText(entry.authorName),
+  };
+}
+
+/**
+ * Named by everything the row still carries rather than by one of them: which
+ * field survives differs from row to row, and the identifier is the one a reader
+ * chases the row by.
+ */
+function sayWhyDropped(read: {
+  id: string | null;
+  title: string | null;
+  url: string | null;
+}): string {
+  const missing = [
+    read.id === null ? "no identifier" : "",
+    read.title === null ? "no title" : "",
+    read.url === null ? "no address" : "",
+  ].filter((part) => part !== "");
+
+  const marks = [
+    read.title === null ? "" : `titled "${read.title}"`,
+    read.id === null ? "" : `carrying id ${read.id}`,
+    read.url ?? "",
+  ].filter((part) => part !== "");
+
+  const named = marks.length > 0 ? marks.join(", ") : "with nothing to name it";
+  return `a row ${named} was set aside: ${missing.join(", ")}`;
+}
+
+/** Read the rows of a listing, naming whatever could not be rendered. */
+export function parseSearchRows(payload: unknown): { rows: SearchRow[]; skipped: string[] } {
+  const rows: SearchRow[] = [];
+  const skipped: string[] = [];
+
+  const results: unknown = isRecord(payload) ? payload.searchResults : undefined;
+  const served: unknown = isRecord(results) ? results.items : undefined;
+  if (!Array.isArray(served)) {
+    return { rows, skipped };
+  }
+
+  for (const entry of served) {
+    const read = readRow(entry);
+    if (typeof read === "string") {
+      skipped.push(read);
+      continue;
+    }
+    rows.push(read);
+  }
+
+  return { rows, skipped };
+}
+
+/**
+ * Read everything a search establishes from one payload.
+ *
+ * `rows_seen` counts what the site served and `result_count` counts what could
+ * be rendered. They differ only when a row was set aside, and holding both is
+ * the only thing that says so: reporting the second alone would make a lost row
+ * look like a row that was never there.
+ */
+export function parseSearchReport(payload: unknown, query: string): SearchReport {
+  const results: unknown = isRecord(payload) ? payload.searchResults : undefined;
+  if (!isRecord(results)) {
+    throw parseFailure("BBC Good Food answered without the block that carries its search results.");
+  }
+
+  const { rows } = parseSearchRows(payload);
+  const served: unknown = results.items;
+  const total = readCount(results.totalItems);
+
+  return {
+    query,
+    results: rows,
+    result_count: rows.length,
+    total_available: total,
+    total_is_ceiling: total === SERVED_ROW_CEILING,
+    rows_seen: Array.isArray(served) ? served.length : 0,
+    restrictions_dropped: [],
   };
 }

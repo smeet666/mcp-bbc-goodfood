@@ -18,6 +18,13 @@ import {
   runListFilters,
 } from "./tools/listFilters.js";
 import type { ListFiltersArgs } from "./tools/listFilters.js";
+import {
+  runSearchRecipes,
+  searchRecipesArgs,
+  searchRecipesDescription,
+  searchRecipesOutputShape,
+} from "./tools/searchRecipes.js";
+import type { SearchRecipesArgs } from "./tools/searchRecipes.js";
 import { toToolError } from "./tools/shared.js";
 import { PKG_VERSION } from "./version.js";
 
@@ -37,6 +44,7 @@ const READ_ONLY = {
 
 export const INSTRUCTIONS = [
   "Tools for reading recipes on BBC Good Food. No API key and no account are needed.",
+  "Typical flow: list_filters to learn the values a restriction takes, then search_recipes to find recipes, then the page a row carries to read one.",
   "Call list_filters before narrowing a search. The site accepts any value on a facet and answers one it does not know with a total of zero, so a guessed spelling comes back as a confident absence rather than as a refusal.",
   "The values list_filters returns are an excerpt of the most frequent ones, and the site accepts others it does not publish: an absent option is not an unusable one.",
   "Counts are measured inside a scope. Pass 'query' to count within one search, and leave it out to count across the whole listing; the two answer different questions and are not comparable.",
@@ -72,6 +80,24 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
     async (args) => {
       try {
         return await runListFilters(client, args as ListFiltersArgs);
+      } catch (error) {
+        return toToolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "search_recipes",
+    {
+      title: "Search recipes",
+      description: searchRecipesDescription,
+      inputSchema: searchRecipesArgs,
+      outputSchema: z.object(searchRecipesOutputShape),
+      annotations: READ_ONLY,
+    },
+    async (args) => {
+      try {
+        return await runSearchRecipes(client, args as SearchRecipesArgs);
       } catch (error) {
         return toToolError(error);
       }

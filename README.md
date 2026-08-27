@@ -61,14 +61,14 @@ other, and the answer says which scope it measured.
 Searches recipes and returns a listing. Every row carries the path of its page,
 which is what `get_recipe` reads.
 
-| Argument                      | Type              | Meaning                                              |
-| ----------------------------- | ----------------- | ---------------------------------------------------- |
-| `query`                       | string            | A dish, an ingredient, a technique.                  |
-| `limit`, `page`               | integer, optional | Rows per page and which page. Defaults to 30 and 1.  |
-| `sort`                        | string, optional  | How the site orders the listing.                     |
-| `diet`, `cuisine`, `meal_type`, `difficulty` | string, optional | A value `list_filters` publishes.     |
-| `max_total_minutes`, `max_calories`, `min_servings`, `min_rating` | number, optional | A bound on the recipe. |
-| `exclude_premium`             | boolean, optional | Leave out what sits behind the site's subscription.  |
+| Argument                                                          | Type              | Meaning                                             |
+| ----------------------------------------------------------------- | ----------------- | --------------------------------------------------- |
+| `query`                                                           | string            | A dish, an ingredient, a technique.                 |
+| `limit`, `page`                                                   | integer, optional | Rows per page and which page. Defaults to 30 and 1. |
+| `sort`                                                            | string, optional  | How the site orders the listing.                    |
+| `diet`, `cuisine`, `meal_type`, `difficulty`                      | string, optional  | A value `list_filters` publishes.                   |
+| `max_total_minutes`, `max_calories`, `min_servings`, `min_rating` | number, optional  | A bound on the recipe.                              |
+| `exclude_premium`                                                 | boolean, optional | Leave out what sits behind the site's subscription. |
 
 The site accepts any value on a facet and answers one it does not know with a
 total of zero, so a guessed spelling comes back as a confident absence rather
@@ -79,10 +79,10 @@ than as a refusal. Call `list_filters` first.
 Reads one recipe: its ingredients, its steps, its times, its rating and its
 nutrition.
 
-| Argument   | Type              | Meaning                                                     |
-| ---------- | ----------------- | ----------------------------------------------------------- |
-| `id`       | string            | The page's own path, as a `search_recipes` row carries it.  |
-| `servings` | integer, optional | Put the ingredients to this many people.                    |
+| Argument   | Type              | Meaning                                                    |
+| ---------- | ----------------- | ---------------------------------------------------------- |
+| `id`       | string            | The page's own path, as a `search_recipes` row carries it. |
+| `servings` | integer, optional | Put the ingredients to this many people.                   |
 
 A recipe behind the site's subscription comes back with everything except its
 ingredients and its steps, and says so. The page carries them, which is exactly
@@ -94,22 +94,40 @@ readers would make this server the way around it.
 Puts a list of ingredient lines to a different number of people, without reading
 anything on the site.
 
-| Argument                        | Type              | Meaning                                              |
-| ------------------------------- | ----------------- | ---------------------------------------------------- |
-| `ingredients`                   | string[]          | The lines to scale, as a recipe writes them.         |
-| `factor`                        | number, optional  | What to multiply every quantity by.                  |
-| `from_servings`, `to_servings`  | integer, optional | The two ends of the change, instead of a factor.     |
+| Argument                       | Type              | Meaning                                          |
+| ------------------------------ | ----------------- | ------------------------------------------------ |
+| `ingredients`                  | string[]          | The lines to scale, as a recipe writes them.     |
+| `factor`                       | number, optional  | What to multiply every quantity by.              |
+| `from_servings`, `to_servings` | integer, optional | The two ends of the change, instead of a factor. |
 
 ```json
 {
   "factor": 0.5,
   "ingredients": [
-    { "text": "100 g plain flour", "original": "200g plain flour", "scaling": "scaled",
-      "amount": 100, "amount_max": null, "unit": "g" },
-    { "text": "2 eggs", "original": "3 eggs", "scaling": "rounded",
-      "amount": 2, "amount_max": null, "unit": null },
-    { "text": "salt and pepper", "original": "salt and pepper", "scaling": "unscaled",
-      "amount": null, "amount_max": null, "unit": null }
+    {
+      "text": "100 g plain flour",
+      "original": "200g plain flour",
+      "scaling": "scaled",
+      "amount": 100,
+      "amount_max": null,
+      "unit": "g"
+    },
+    {
+      "text": "2 eggs",
+      "original": "3 eggs",
+      "scaling": "rounded",
+      "amount": 2,
+      "amount_max": null,
+      "unit": null
+    },
+    {
+      "text": "salt and pepper",
+      "original": "salt and pepper",
+      "scaling": "unscaled",
+      "amount": null,
+      "amount_max": null,
+      "unit": null
+    }
   ],
   "scaled_count": 1,
   "rounded_count": 1,
@@ -262,8 +280,8 @@ Ce serveur publie le vocabulaire, pour que la question soit posable.
 Publie les axes le long desquels une recherche de recettes se resserre, avec les
 valeurs que chacun prend et le nombre de recettes qui les portent.
 
-| Argument | Type                | Sens                                                                                    |
-| -------- | ------------------- | --------------------------------------------------------------------------------------- |
+| Argument | Type                | Sens                                                                                     |
+| -------- | ------------------- | ---------------------------------------------------------------------------------------- |
 | `query`  | chaîne, facultative | Mesure les décomptes à l'intérieur de cette recherche. Sans elle, sur tout le catalogue. |
 
 Le site compte ses facettes sur les lignes que la recherche rend, si bien que les
@@ -295,14 +313,14 @@ deux ne se compare à l'autre, et la réponse dit dans quelle étendue elle a me
 Cherche des recettes et rend une liste. Chaque ligne porte le chemin de sa page,
 qui est ce que `get_recipe` lit.
 
-| Argument                      | Type                | Sens                                                        |
-| ----------------------------- | ------------------- | ----------------------------------------------------------- |
-| `query`                       | chaîne              | Un plat, un ingrédient, une technique.                      |
-| `limit`, `page`               | entier, facultatif  | Lignes par page et quelle page. Par défaut 30 et 1.         |
-| `sort`                        | chaîne, facultative | L'ordre dans lequel le site range la liste.                 |
-| `diet`, `cuisine`, `meal_type`, `difficulty` | chaîne, facultative | Une valeur que `list_filters` publie.       |
-| `max_total_minutes`, `max_calories`, `min_servings`, `min_rating` | nombre, facultatif | Une borne sur la recette. |
-| `exclude_premium`             | booléen, facultatif | Laisse de côté ce qui est derrière l'abonnement du site.    |
+| Argument                                                          | Type                | Sens                                                     |
+| ----------------------------------------------------------------- | ------------------- | -------------------------------------------------------- |
+| `query`                                                           | chaîne              | Un plat, un ingrédient, une technique.                   |
+| `limit`, `page`                                                   | entier, facultatif  | Lignes par page et quelle page. Par défaut 30 et 1.      |
+| `sort`                                                            | chaîne, facultative | L'ordre dans lequel le site range la liste.              |
+| `diet`, `cuisine`, `meal_type`, `difficulty`                      | chaîne, facultative | Une valeur que `list_filters` publie.                    |
+| `max_total_minutes`, `max_calories`, `min_servings`, `min_rating` | nombre, facultatif  | Une borne sur la recette.                                |
+| `exclude_premium`                                                 | booléen, facultatif | Laisse de côté ce qui est derrière l'abonnement du site. |
 
 Le site accepte n'importe quelle valeur sur une facette et répond à une valeur
 qu'il ne connaît pas par un total de zéro : une orthographe devinée revient comme
@@ -313,10 +331,10 @@ une absence assurée et non comme un refus. Appelle `list_filters` d'abord.
 Lit une recette : ses ingrédients, ses étapes, ses temps, sa note et ses valeurs
 nutritionnelles.
 
-| Argument   | Type               | Sens                                                            |
-| ---------- | ------------------ | --------------------------------------------------------------- |
+| Argument   | Type               | Sens                                                                 |
+| ---------- | ------------------ | -------------------------------------------------------------------- |
 | `id`       | chaîne             | Le chemin de la page, tel qu'une ligne de `search_recipes` le porte. |
-| `servings` | entier, facultatif | Remet les ingrédients à ce nombre de parts.                     |
+| `servings` | entier, facultatif | Remet les ingrédients à ce nombre de parts.                          |
 
 Une recette derrière l'abonnement du site revient avec tout sauf ses ingrédients
 et ses étapes, et le dit. La page les porte, et c'est exactement pourquoi la
@@ -328,22 +346,40 @@ lecteurs ferait de ce serveur le moyen de le contourner.
 Remet une liste de lignes d'ingrédients à un autre nombre de personnes, sans rien
 lire sur le site.
 
-| Argument                       | Type               | Sens                                                     |
-| ------------------------------ | ------------------ | -------------------------------------------------------- |
+| Argument                       | Type               | Sens                                                                |
+| ------------------------------ | ------------------ | ------------------------------------------------------------------- |
 | `ingredients`                  | chaîne[]           | Les lignes à remettre à l'échelle, telles qu'une recette les écrit. |
-| `factor`                       | nombre, facultatif | Ce par quoi multiplier chaque quantité.                  |
-| `from_servings`, `to_servings` | entier, facultatif | Les deux bouts du changement, à la place d'un facteur.   |
+| `factor`                       | nombre, facultatif | Ce par quoi multiplier chaque quantité.                             |
+| `from_servings`, `to_servings` | entier, facultatif | Les deux bouts du changement, à la place d'un facteur.              |
 
 ```json
 {
   "factor": 0.5,
   "ingredients": [
-    { "text": "100 g plain flour", "original": "200g plain flour", "scaling": "scaled",
-      "amount": 100, "amount_max": null, "unit": "g" },
-    { "text": "2 eggs", "original": "3 eggs", "scaling": "rounded",
-      "amount": 2, "amount_max": null, "unit": null },
-    { "text": "salt and pepper", "original": "salt and pepper", "scaling": "unscaled",
-      "amount": null, "amount_max": null, "unit": null }
+    {
+      "text": "100 g plain flour",
+      "original": "200g plain flour",
+      "scaling": "scaled",
+      "amount": 100,
+      "amount_max": null,
+      "unit": "g"
+    },
+    {
+      "text": "2 eggs",
+      "original": "3 eggs",
+      "scaling": "rounded",
+      "amount": 2,
+      "amount_max": null,
+      "unit": null
+    },
+    {
+      "text": "salt and pepper",
+      "original": "salt and pepper",
+      "scaling": "unscaled",
+      "amount": null,
+      "amount_max": null,
+      "unit": null
+    }
   ],
   "scaled_count": 1,
   "rounded_count": 1,

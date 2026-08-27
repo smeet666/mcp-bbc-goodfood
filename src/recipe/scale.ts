@@ -156,20 +156,24 @@ function land(raw: number, unit: UnitInfo | null, item: string): Landed {
   return { amount: landed, unit, exact: isExact(landed, raw) };
 }
 
-function renderAmount(value: number): string {
+/**
+ * A quantity as a recipe writes it.
+ *
+ * A fraction glyph belongs to what a kitchen counts: half an onion, a quarter of
+ * a can. A measure is written as a number, because "12\u00bd g" is a weight nobody
+ * puts on a scale.
+ */
+function renderAmount(value: number, unit: UnitInfo | null): string {
   if (isExact(value, Math.round(value))) {
     return String(Math.round(value));
   }
-  for (const [glyph, fraction] of Object.entries(VULGAR)) {
-    if (isExact(value, fraction)) {
-      return glyph;
-    }
-  }
-  const whole = Math.floor(value);
-  const part = value - whole;
-  for (const [glyph, fraction] of Object.entries(VULGAR)) {
-    if (whole > 0 && isExact(part, fraction)) {
-      return `${whole}${glyph}`;
+  if (unit?.measures !== true) {
+    const whole = Math.floor(value);
+    const part = value - whole;
+    for (const [glyph, fraction] of Object.entries(VULGAR)) {
+      if (isExact(part, fraction)) {
+        return whole === 0 ? glyph : `${whole}${glyph}`;
+      }
     }
   }
   return String(Math.round(value * 100) / 100);
@@ -189,8 +193,8 @@ function compose(
 ): string {
   const quantity =
     head.amountMax === null
-      ? renderAmount(head.amount)
-      : `${renderAmount(head.amount)}-${renderAmount(head.amountMax)}`;
+      ? renderAmount(head.amount, head.unit)
+      : `${renderAmount(head.amount, head.unit)}-${renderAmount(head.amountMax, head.unit)}`;
   const unit = head.unit ? ` ${head.unit.canonical}` : "";
   return `${quantity}${unit} ${rest}`.trim();
 }
@@ -255,7 +259,8 @@ export function scaleParts(
   const unit = parts.unit === null ? null : lookupUnit(parts.unit);
   const landed = land(parts.amount * factor, unit, parts.item);
   const said = landed.unit?.canonical ?? parts.unit;
-  const head = `${renderAmount(landed.amount)}${said ? ` ${said}` : ""} ${parts.item}`.trim();
+  const head =
+    `${renderAmount(landed.amount, landed.unit)}${said ? ` ${said}` : ""} ${parts.item}`.trim();
 
   return {
     text: parts.note === null ? head : `${head}, ${parts.note}`,

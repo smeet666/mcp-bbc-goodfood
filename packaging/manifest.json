@@ -3,8 +3,8 @@
   "name": "mcp-bbc-goodfood",
   "display_name": "BBC Good Food",
   "version": "0.1.0",
-  "description": "MCP server for BBC Good Food. Search recipes, read one, and list the axes a search can be narrowed by. No API key required.",
-  "long_description": "List the axes a recipe search can be narrowed along on BBC Good Food, with the values each one takes and how many recipes carry them, measured inside one search or across the whole listing. The site accepts any value on a facet and answers one it does not know with a total of zero, so a guessed spelling comes back as a confident absence; publishing the vocabulary is what makes the question askable. Every answer also states how many of the rows the site served actually carry a word of the search, because the site answers a term it holds nothing for with a count and a page of rows all the same. Read-only, no API key and no account.",
+  "description": "MCP server for BBC Good Food. Search recipes, read one, and put its ingredients to a number of people. No API key required.",
+  "long_description": "List the axes a recipe search can be narrowed along on BBC Good Food, with the values each one takes and how many recipes carry them, measured inside one search or across the whole listing. The site accepts any value on a facet and answers one it does not know with a total of zero, so a guessed spelling comes back as a confident absence; publishing the vocabulary is what makes the question askable. Search the site, then read one recipe from the path a row carries: its ingredients, its steps, its times, its rating and its nutrition. A recipe behind the site's subscription comes back without its ingredients and steps, and says so. Ingredients can be put to a different number of people, and every recomputed figure is announced as this server's arithmetic rather than the site's: three eggs halved come back as two, because half an egg is not an amount a kitchen measures out. Read-only, no API key and no account.",
   "author": {
     "name": "Damien Bouissou",
     "url": "https://github.com/smeet666"

@@ -1,0 +1,32 @@
+{
+  "tabs": [
+    {
+      "label": "Recipes",
+      "identifier": "recipe",
+      "isDefault": true,
+      "isCurrent": true
+    }
+  ],
+  "filters": [],
+  "sort": [
+    {
+      "text": "Most relevant",
+      "value": "relevant",
+      "selected": true
+    },
+    {
+      "text": "Quickest",
+      "value": "quickest",
+      "selected": false
+    }
+  ],
+  "searchResults": {
+    "totalItems": 0,
+    "limit": 30,
+    "nextUrl": null,
+    "previousUrl": null,
+    "items": []
+  },
+  "searchUrl": "/api/search-frontend/search",
+  "searchApiVersion": "6.1"
+}

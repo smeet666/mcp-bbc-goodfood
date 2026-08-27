@@ -1,0 +1,77 @@
+{
+  "tabs": [
+    {
+      "label": "Recipes",
+      "identifier": "recipe",
+      "isDefault": true,
+      "isCurrent": true
+    }
+  ],
+  "filters": [],
+  "sort": [
+    {
+      "text": "Most relevant",
+      "value": "relevant",
+      "selected": true
+    },
+    {
+      "text": "Quickest",
+      "value": "quickest",
+      "selected": false
+    }
+  ],
+  "searchResults": {
+    "totalItems": 6,
+    "limit": 30,
+    "nextUrl": null,
+    "previousUrl": null,
+    "items": [
+      {
+        "id": "321",
+        "title": "Keldish greens",
+        "url": "https://www.bbcgoodfood.com/recipes/keldish-greens",
+        "isPremium": false,
+        "rating": {
+          "ratingValue": 4.2,
+          "ratingCount": 361
+        },
+        "image": {
+          "alt": "Keldish greens",
+          "height": 400,
+          "width": 440,
+          "url": "https://images.example.invalid/keldish-greens.jpg"
+        },
+        "authorName": "Wren Holloway",
+        "terms": [
+          {
+            "slug": "time",
+            "display": "50 mins"
+          },
+          {
+            "slug": "skillLevel",
+            "display": "Easy"
+          }
+        ]
+      },
+      {
+        "id": "322",
+        "title": "No address at all",
+        "isPremium": false,
+        "rating": null
+      },
+      {
+        "id": "323",
+        "url": "https://www.bbcgoodfood.com/recipes/no-title",
+        "rating": null
+      },
+      {
+        "title": "No identifier",
+        "url": "https://www.bbcgoodfood.com/recipes/no-id"
+      },
+      "not a row at all",
+      null
+    ]
+  },
+  "searchUrl": "/api/search-frontend/search",
+  "searchApiVersion": "6.1"
+}

@@ -24,8 +24,6 @@ function reportOf(filters: FilterGroup[], totalAvailable: number | null): Filter
     filter_count: filters.length,
     total_available: totalAvailable,
     total_is_ceiling: totalAvailable === 10_000,
-    rows_seen: 0,
-    matched_rows: null,
   };
 }
 

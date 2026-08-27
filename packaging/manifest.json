@@ -1,0 +1,46 @@
+{
+  "manifest_version": "0.3",
+  "name": "mcp-bbc-goodfood",
+  "display_name": "BBC Good Food",
+  "version": "0.1.0",
+  "description": "MCP server for BBC Good Food. Search recipes and list the axes a search can be narrowed by. No API key required.",
+  "long_description": "List the axes a recipe search can be narrowed along on BBC Good Food, with the values each one takes and how many recipes carry them, measured inside one search or across the whole listing. The site accepts any value on a facet and answers one it does not know with a total of zero, so a guessed spelling comes back as a confident absence; publishing the vocabulary is what makes the question askable. Every answer also states how many of the rows the site served actually carry a word of the search, because the site answers a term it holds nothing for with a count and a page of rows all the same. Read-only, no API key and no account.",
+  "author": {
+    "name": "Damien Bouissou",
+    "url": "https://github.com/smeet666"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smeet666/mcp-bbc-goodfood.git"
+  },
+  "homepage": "https://github.com/smeet666/mcp-bbc-goodfood#readme",
+  "documentation": "https://github.com/smeet666/mcp-bbc-goodfood#readme",
+  "support": "https://github.com/smeet666/mcp-bbc-goodfood/issues",
+  "icon": "assets/icon-512.png",
+  "license": "MIT",
+  "keywords": ["mcp", "model-context-protocol", "bbc-good-food", "recipes", "cooking"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"]
+    }
+  },
+  "tools": [
+    {
+      "name": "list_filters",
+      "description": "List the axes a recipe search can be narrowed along, with the values each takes and how many recipes carry them."
+    },
+    {
+      "name": "search_recipes",
+      "description": "Search recipes and return a listing, narrowed by diet, cuisine, meal type, difficulty, a bound, or by leaving out what sits behind the site's subscription."
+    }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=24.0.0"
+    }
+  }
+}

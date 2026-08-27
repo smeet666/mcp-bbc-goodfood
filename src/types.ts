@@ -100,3 +100,72 @@ export interface SearchReport {
    */
   restrictions_dropped: string[];
 }
+
+/** One line of an ingredient list, as the site publishes it. */
+export interface RecipeIngredient {
+  /** The line as the site composes it. */
+  text: string;
+  /** The quantity, in `unit`. Null when the site states none. */
+  amount: number | null;
+  /** The unit `amount` is in, as the site writes it. Null when it states none. */
+  unit: string | null;
+  /** What the ingredient is, without its quantity. */
+  item: string;
+  /** What the site says to do to it beforehand, such as "thinly sliced". */
+  note: string | null;
+  /** The site's own normalised name for it. Null when it gives none. */
+  term: string | null;
+}
+
+export interface IngredientGroup {
+  /** The site's own heading, or null when the group carries none. */
+  heading: string | null;
+  ingredients: RecipeIngredient[];
+}
+
+export interface NutritionFact {
+  /** The site's own wording, such as "kcal" or "saturates". */
+  label: string;
+  value: number | null;
+  /** Such as "g". The empty string where the site writes none. */
+  unit: string;
+}
+
+/** One recipe, read from its own page. */
+export interface Recipe {
+  id: string;
+  title: string;
+  url: string;
+  /** True when the recipe sits behind the site's subscription. */
+  premium: boolean;
+  /** What the site states, such as "Serves 4". Null when it states none. */
+  yield_text: string | null;
+  /** The first whole number read out of that wording. Null when there is none. */
+  yield_count: number | null;
+  /** Minutes, from the upper bound the site publishes. Null when it publishes none. */
+  prep_minutes: number | null;
+  cook_minutes: number | null;
+  total_minutes: number | null;
+  /** The site's own wording, such as "Easy". */
+  difficulty: string | null;
+  /** The site's own wording for each diet it tags. */
+  diets: string[];
+  author: string | null;
+  /** 1 to 5. Null when nobody has rated it. */
+  rating: number | null;
+  rating_count: number | null;
+  description: string | null;
+  /**
+   * Empty when the recipe sits behind the subscription.
+   *
+   * The page carries them all the same, and that is exactly why this is a rule:
+   * the site put a wall in front of its readers, and this server does not become
+   * the way around it.
+   */
+  ingredients: IngredientGroup[];
+  /** Empty when the recipe sits behind the subscription. */
+  steps: string[];
+  nutrition: NutritionFact[];
+  /** The site's own wording for what the nutrition is stated per. */
+  nutrition_per: string | null;
+}

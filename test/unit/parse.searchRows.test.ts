@@ -40,7 +40,16 @@ describe("parseSearchRows", () => {
   it("reads the five rows of a served page in the site's own order", () => {
     const { rows, skipped } = parseSearchRows(fixture("search-page.json"));
 
-    expect(rows.map((row: SearchRow) => row.id)).toEqual(["301", "302", "303", "304", "305"]);
+    // The identifier is the page's own path. The site's numeric id resolves to
+    // nothing a caller can read, so handing it back would name a recipe by
+    // something that cannot fetch it.
+    expect(rows.map((row: SearchRow) => row.id)).toEqual([
+      "recipes/keldish-greens-chorizo",
+      "recipes/easy-keldish-bravas",
+      "recipes/marran-almond-wafers",
+      "recipes/keldish-pepper-broth",
+      "recipes/ostrean-plum-tart",
+    ]);
     expect(rows.map((row: SearchRow) => row.title)).toEqual([
       "Keldish greens with chorizo",
       "Easy keldish bravas",
@@ -55,7 +64,7 @@ describe("parseSearchRows", () => {
     const { rows } = parseSearchRows(fixture("search-page.json"));
 
     expect(rows[0]).toEqual({
-      id: "301",
+      id: "recipes/keldish-greens-chorizo",
       title: "Keldish greens with chorizo",
       url: "https://www.bbcgoodfood.com/recipes/keldish-greens-chorizo",
       image_url: "https://images.example.invalid/keldish-greens-chorizo.jpg",

@@ -31,13 +31,13 @@ export function truncate(text: string, maxChars: number): string {
  * Keep text from the site out of the shape this server's own lines take.
  *
  * The block ends with lines opening "Note:" and "Source:", and a caller has no
- * way to tell one of those from the same words inside a facet the site named.
- * Indenting a body line that opens with one of those words keeps the two apart,
- * and costs nothing: the structured output still carries the text exactly as it
- * was published.
+ * way to tell one of those from the same words inside a recipe the site titled.
+ * A body line opening with one of those words is quoted, which survives a
+ * reader trimming the line where a leading space would not. The structured
+ * output still carries the text exactly as it was published.
  */
-function indentMarkerLines(body: string): string {
-  return body.replace(/^(Note:|Source:)/gm, " $1");
+function quoteMarkerLines(body: string): string {
+  return body.replace(/^(Note:|Source:)/gm, "> $1");
 }
 
 /**
@@ -60,7 +60,7 @@ export function ok(
   const cut = "…";
   const budget = Math.max(0, MAX_TEXT_CHARS - trailer.length - 2);
 
-  const safe = indentMarkerLines(body);
+  const safe = quoteMarkerLines(body);
   const text =
     safe.length <= budget
       ? `${safe}\n\n${trailer}`

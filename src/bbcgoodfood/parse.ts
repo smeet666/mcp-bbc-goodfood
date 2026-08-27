@@ -7,9 +7,27 @@
  */
 
 import { parseFailure } from "../errors.js";
-import type { FilterGroup, FilterOption, FilterReport, SearchReport, SearchRow } from "../types.js";
+import { SITE_ORIGIN } from "./urls.js";
+import type {
+  FilterGroup,
+  FilterOption,
+  FilterReport,
+  IngredientGroup,
+  NutritionFact,
+  Recipe,
+  RecipeIngredient,
+  SearchReport,
+  SearchRow,
+} from "../types.js";
 import { SERVED_ROW_CEILING } from "../types.js";
 
+const TAGS = /<[^>]*>/g;
+const RUN_OF_SPACE = /\s+/g;
+const SPACE_BEFORE_PUNCTUATION = /\s+([.,;:!?)\]])/g;
+const FIRST_WHOLE_NUMBER = /\d+/;
+const LEADING_SLASHES = /^\/+/;
+const TRAILING_SLASHES = /\/+$/;
+const DATA_BLOCK = /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/;
 const HOURS = /(\d+)\s*(?:hrs?|hours?)\b/i;
 const MINUTES = /(\d+)\s*(?:mins?|minutes?)\b/i;
 
@@ -205,6 +223,21 @@ function readRating(row: Record<string, unknown>): { value: number | null; count
 }
 
 /**
+ * The path an address points at, without its leading slash, its query, its
+ * fragment or a trailing slash. Null when the address names no page.
+ */
+function pathOf(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  const path = parsed.pathname.replace(LEADING_SLASHES, "").replace(TRAILING_SLASHES, "");
+  return path === "" ? null : path;
+}
+
+/**
  * One row, or the wording that says why it could not be rendered.
  *
  * Three fields make a row usable and each answers a different need: the
@@ -217,11 +250,14 @@ function readRow(entry: unknown): SearchRow | string {
     return "a row arrived in a shape with no fields to read";
   }
 
-  const id = readText(entry.id);
   const title = readText(entry.title);
   const url = readText(entry.url);
+  // The identifier is the page's own path. The site's numeric id resolves to
+  // nothing a caller can read, so handing it back would name a recipe by
+  // something that cannot fetch it.
+  const id = url === null ? null : pathOf(url);
   if (id === null || title === null || url === null) {
-    return sayWhyDropped({ id, title, url });
+    return sayWhyDropped({ title, url, siteId: readText(entry.id) });
   }
 
   const image: unknown = entry.image;
@@ -246,19 +282,20 @@ function readRow(entry: unknown): SearchRow | string {
  * chases the row by.
  */
 function sayWhyDropped(read: {
-  id: string | null;
   title: string | null;
   url: string | null;
+  siteId: string | null;
 }): string {
   const missing = [
-    read.id === null ? "no identifier" : "",
     read.title === null ? "no title" : "",
     read.url === null ? "no address" : "",
   ].filter((part) => part !== "");
 
+  // The site's own identifier names the row for a bug report even though it
+  // cannot fetch it, which is why it is read here and not used as the id.
   const marks = [
     read.title === null ? "" : `titled "${read.title}"`,
-    read.id === null ? "" : `carrying id ${read.id}`,
+    read.siteId === null ? "" : `carrying id ${read.siteId}`,
     read.url ?? "",
   ].filter((part) => part !== "");
 
@@ -315,5 +352,230 @@ export function parseSearchReport(payload: unknown, query: string): SearchReport
     total_is_ceiling: total === SERVED_ROW_CEILING,
     rows_seen: Array.isArray(served) ? served.length : 0,
     restrictions_dropped: [],
+  };
+}
+
+/** The text a fragment of the site's HTML says, links rendered by their words. */
+function readProse(html: unknown): string | null {
+  if (typeof html !== "string") {
+    return null;
+  }
+  // A tag becomes a space so two words never run together, which then leaves a
+  // space before whatever punctuation followed the tag.
+  const text = decodeEntities(html.replace(TAGS, " "))
+    .replace(RUN_OF_SPACE, " ")
+    .replace(SPACE_BEFORE_PUNCTUATION, "$1")
+    .trim();
+  return text === "" ? null : text;
+}
+
+const ENTITIES: Readonly<Record<string, string>> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+const ENTITY = /&(#x?[0-9a-f]+|[a-z]+);/gi;
+
+function decodeEntities(text: string): string {
+  return text.replace(ENTITY, (whole, body: string) => {
+    if (body.startsWith("#")) {
+      const code =
+        body[1]?.toLowerCase() === "x" ? Number.parseInt(body.slice(2), 16) : Number(body.slice(1));
+      return Number.isInteger(code) && code > 0 ? String.fromCodePoint(code) : whole;
+    }
+    return ENTITIES[body.toLowerCase()] ?? whole;
+  });
+}
+
+/** A whole number of minutes from a bound the site states in seconds. */
+function readBound(seconds: unknown): number | null {
+  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds <= 0) {
+    return null;
+  }
+  return Math.round(seconds / 60);
+}
+
+function readTimes(published: unknown): {
+  prep_minutes: number | null;
+  cook_minutes: number | null;
+  total_minutes: number | null;
+} {
+  if (!isRecord(published)) {
+    return { prep_minutes: null, cook_minutes: null, total_minutes: null };
+  }
+  // The upper bound is the figure the page prints, and the lower one is zero on
+  // every recipe: rendering that zero would say the step takes no time at all.
+  return {
+    prep_minutes: readBound(published.preparationMax),
+    cook_minutes: readBound(published.cookingMax),
+    total_minutes: readBound(published.total),
+  };
+}
+
+function readIngredient(entry: unknown): RecipeIngredient | string {
+  if (!isRecord(entry)) {
+    return "an ingredient arrived in a shape with no fields to read";
+  }
+  const item = readText(entry.ingredientText);
+  if (item === null) {
+    return "an ingredient line carries no name for what goes in";
+  }
+
+  const quantity = readText(entry.quantityText);
+  const note = readText(entry.note);
+  const amount =
+    typeof entry.metricQuantity === "number" &&
+    Number.isFinite(entry.metricQuantity) &&
+    entry.metricQuantity > 0
+      ? entry.metricQuantity
+      : null;
+  const term = isRecord(entry.term) ? readText(entry.term.display) : null;
+
+  // Composed the way the site composes it, and nothing more: a separator the
+  // site does not write would be punctuation this server invented.
+  const head = quantity === null ? item : `${quantity} ${item}`;
+  return {
+    text: note === null ? head : `${head}, ${note}`,
+    amount,
+    unit: readText(entry.metricUnit),
+    item,
+    note,
+    term,
+  };
+}
+
+function readIngredientGroups(published: unknown, skipped: string[]): IngredientGroup[] {
+  if (!Array.isArray(published)) {
+    return [];
+  }
+  const groups: IngredientGroup[] = [];
+  for (const group of published) {
+    if (!isRecord(group)) {
+      skipped.push("an ingredient group arrived in a shape with no fields to read");
+      continue;
+    }
+    const lines: RecipeIngredient[] = [];
+    for (const entry of Array.isArray(group.ingredients) ? group.ingredients : []) {
+      const read = readIngredient(entry);
+      if (typeof read === "string") {
+        skipped.push(read);
+        continue;
+      }
+      lines.push(read);
+    }
+    groups.push({ heading: readText(group.heading), ingredients: lines });
+  }
+  return groups;
+}
+
+function readSteps(published: unknown, skipped: string[]): string[] {
+  if (!Array.isArray(published)) {
+    return [];
+  }
+  const steps: string[] = [];
+  for (const step of published) {
+    const parts = isRecord(step) && Array.isArray(step.content) ? step.content : [];
+    const said = parts
+      .map((part) => (isRecord(part) && isRecord(part.data) ? readProse(part.data.value) : null))
+      .filter((part): part is string => part !== null)
+      .join(" ");
+    const text = said.trim();
+    if (!isRecord(step) || text === "") {
+      skipped.push("a step carries no words to follow");
+      continue;
+    }
+    const heading = readText(step.name);
+    steps.push(heading === null ? text : `${heading}: ${text}`);
+  }
+  return steps;
+}
+
+function readNutrition(published: unknown): NutritionFact[] {
+  if (!Array.isArray(published)) {
+    return [];
+  }
+  const facts: NutritionFact[] = [];
+  for (const fact of published) {
+    if (!isRecord(fact)) {
+      continue;
+    }
+    const label = readText(fact.label);
+    if (label === null) {
+      continue;
+    }
+    facts.push({
+      label,
+      value: typeof fact.value === "number" && Number.isFinite(fact.value) ? fact.value : null,
+      unit: typeof fact.unit === "string" ? fact.unit : "",
+    });
+  }
+  return facts;
+}
+
+/**
+ * Read one recipe from the page that publishes it.
+ *
+ * A recipe behind the subscription comes back without its ingredients and its
+ * steps, although the page carries them. That is the whole point of the rule:
+ * the site put a wall in front of its readers, and reading past it because the
+ * bytes happen to be there would make this server the way around it.
+ */
+export function parseRecipe(html: string, id: string): { recipe: Recipe; skipped: string[] } {
+  const block = DATA_BLOCK.exec(html)?.[1];
+  if (block === undefined) {
+    throw parseFailure("BBC Good Food served a page without the block that carries its recipe.");
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(block);
+  } catch (cause) {
+    throw parseFailure("BBC Good Food served a recipe block that is not JSON.", { cause });
+  }
+
+  const props: unknown = isRecord(payload) ? payload.props : undefined;
+  const page: unknown = isRecord(props) ? props.pageProps : undefined;
+  if (!isRecord(page)) {
+    throw parseFailure("BBC Good Food served a page carrying no recipe to read.");
+  }
+
+  const skipped: string[] = [];
+  const premium = page.isPremium === true;
+  const yieldText = readText(page.servings);
+  const rating = isRecord(page.userRatings)
+    ? readRating({
+        rating: { ratingValue: page.userRatings.avg, ratingCount: page.userRatings.total },
+      })
+    : { value: null, count: null };
+  const authors = Array.isArray(page.authors) ? page.authors : [];
+  const diets = Array.isArray(page.diet) ? page.diet : [];
+
+  return {
+    recipe: {
+      id,
+      title: readText(page.title) ?? id,
+      url: `${SITE_ORIGIN}/${id}`,
+      premium,
+      yield_text: yieldText,
+      yield_count:
+        yieldText === null ? null : Number(FIRST_WHOLE_NUMBER.exec(yieldText)?.[0]) || null,
+      ...readTimes(page.cookAndPrepTime),
+      difficulty: readText(page.skillLevel),
+      diets: diets
+        .map((diet) => (isRecord(diet) ? readText(diet.display) : null))
+        .filter((diet): diet is string => diet !== null),
+      author: authors.length > 0 && isRecord(authors[0]) ? readText(authors[0].name) : null,
+      rating: rating.value,
+      rating_count: rating.count,
+      description: readProse(page.description),
+      ingredients: premium ? [] : readIngredientGroups(page.ingredients, skipped),
+      steps: premium ? [] : readSteps(page.methodSteps, skipped),
+      nutrition: readNutrition(page.nutritions),
+      nutrition_per: readText(page.nutritionalInfoCaption),
+    },
+    skipped,
   };
 }

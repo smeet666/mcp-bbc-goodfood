@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.smeet666/mcp-bbc-goodfood",
-  "description": "Search BBC Good Food recipes and list the axes a search can be narrowed by. No API key.",
+  "description": "Search BBC Good Food recipes, read one, and scale its ingredients. No API key.",
   "websiteUrl": "https://github.com/smeet666/mcp-bbc-goodfood#readme",
   "icons": [
     {

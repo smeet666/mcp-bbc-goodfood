@@ -1,8 +1,12 @@
 # mcp-bbc-goodfood
 
+[![npm](https://img.shields.io/npm/v/mcp-bbc-goodfood.svg)](https://www.npmjs.com/package/mcp-bbc-goodfood)
 [![CI](https://github.com/smeet666/mcp-bbc-goodfood/actions/workflows/ci.yml/badge.svg)](https://github.com/smeet666/mcp-bbc-goodfood/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/mcp-bbc-goodfood)](https://www.npmjs.com/package/mcp-bbc-goodfood)
-[![licence MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+[![license](https://img.shields.io/npm/l/mcp-bbc-goodfood.svg)](./LICENSE)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-6E56CF)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.smeet666/mcp-bbc-goodfood)
+[![Glama](https://glama.ai/mcp/servers/smeet666/mcp-bbc-goodfood/badges/score.svg)](https://glama.ai/mcp/servers/smeet666/mcp-bbc-goodfood)
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=bbc-goodfood&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1iYmMtZ29vZGZvb2QiXX0%3D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=bbc-goodfood&config=%7B%22name%22%3A%22bbc-goodfood%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-bbc-goodfood%22%5D%7D)
 
 An MCP server that reads recipes on [BBC Good Food](https://www.bbcgoodfood.com).
 Read-only, no API key, no account.

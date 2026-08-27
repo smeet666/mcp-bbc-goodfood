@@ -10,6 +10,14 @@
 import type { Divisibility, UnitInfo } from "./units.js";
 import { unitDivisibility } from "./units.js";
 
+/** Coarsest first: a share nobody takes is worse than one nobody needed. */
+const FINENESS: Readonly<Record<Divisibility, number>> = { whole: 0, half: 1, quarter: 2 };
+
+/** Of two readings of one line, the one that offers the larger share. */
+function coarser(left: Divisibility, right: Divisibility): Divisibility {
+  return FINENESS[left] <= FINENESS[right] ? left : right;
+}
+
 /**
  * A preparation rather than the thing it was made from.
  *
@@ -36,10 +44,28 @@ const WHOLE_ITEM = /\b(eggs?|yolks?|egg\s+whites?|zests?)\b/i;
  * one fewer in the pan. Cutting one in two is not a thing a kitchen does.
  */
 const PORTION_SIZED =
-  /\b(shrimps?|prawns?|langoustines?|mussels?|clams?|hazelnuts?|peppercorns?|junipers?|anise|cloves?\s+of\s+spice)\b/i;
+  /\b(shrimps?|prawns?|langoustines?|mussels?|clams?|scallops?|hazelnuts?|peppercorns?|junipers?|anise|sausages?|chipolatas?|rashers?|tortillas?|wraps?|pittas?|buns?|pods?|chops?|cloves?\s+of\s+spice)\b/i;
+
+/**
+ * A sheet of something a recipe soaks or layers.
+ *
+ * These are read before leaves are, because gelatine is sold in leaves and a
+ * leaf of gelatine halves where a bay leaf does not.
+ */
+const LAYERED = /\b(gelatines?|gelatins?|filo|phyllo|lasagne|lasagna|pastry|rice\s+paper)\b/i;
+
+/** A leaf a recipe picks off a herb, which is a thing a cook counts. */
+const HERB_LEAF = /\b(leaf|leaves)\b/i;
+
+/** Words that name a small one of something a knife would otherwise quarter. */
+const SMALL_SIZED = /\b(cherry|sun-?dried|baby|new|dried)\b/i;
+
+/** A bird a recipe counts pieces of rather than birds. */
+const POULTRY = /\b(chickens?|turkeys?|ducks?|poussins?)\b/i;
+const POULTRY_CUT = /\b(thighs?|drumsticks?|breasts?|wings?|legs?|fillets?)\b/i;
 
 /** Things that split in two and no finer. */
-const HALVED_ITEM = /\b(cans?|tins?|cloves?|garlic|gelatines?|gelatins?|leaf|leaves|sheets?)\b/i;
+const HALVED_ITEM = /\b(cans?|tins?|cloves?|garlic|sheets?)\b/i;
 
 /**
  * Food a knife divides further, or whose quarter is still a portion someone
@@ -49,31 +75,49 @@ const QUARTERED_ITEM =
   /\b(onions?|shallots?|potato(?:es)?|carrots?|apples?|pears?|lemons?|limes?|oranges?|tomato(?:es)?|cucumbers?|courgettes?|zucchinis?|aubergines?|eggplants?|squash(?:es)?|pumpkins?|cabbages?|melons?|watermelons?|peppers?|beets?|turnips?|parsnips?|leeks?|bananas?|mango(?:e?s)?|pineapples?|peach(?:es)?|apricots?|avocados?|legs?\s+of\s+lamb|baguettes?|camemberts?|chorizos?|chickens?|guinea\s+fowls?|roasts?)\b/i;
 
 /**
- * How finely a kitchen divides one of what this line counts.
+ * How finely a kitchen divides one of this food, read from its name alone.
  *
- * The order the readings run in is the whole of the rule. A measure overrules
- * the food when it measures, because "100 g of apples" divides like a mass. A
- * preparation overrules the food it was made from. And what is left falls to a
- * half, which is the share most things give up by eye.
+ * The order the readings run in is the whole of the rule. A preparation
+ * overrules the food it was made from, a size overrules the knife, and a cut of
+ * poultry overrules the bird.
  */
-export function divisibilityOf(unit: UnitInfo | null, item: string): Divisibility {
-  if (unit?.measures) {
-    return unitDivisibility(unit);
-  }
+function fromFood(item: string): Divisibility {
   if (PREPARATION.test(item)) {
     return "half";
   }
-  if (WHOLE_ITEM.test(item)) {
+  if (WHOLE_ITEM.test(item) || PORTION_SIZED.test(item)) {
     return "whole";
   }
-  if (PORTION_SIZED.test(item)) {
+  if (LAYERED.test(item)) {
+    return "half";
+  }
+  if (HERB_LEAF.test(item)) {
+    return "whole";
+  }
+  if (POULTRY.test(item) && POULTRY_CUT.test(item)) {
+    return "whole";
+  }
+  if (SMALL_SIZED.test(item) && QUARTERED_ITEM.test(item)) {
     return "whole";
   }
   if (HALVED_ITEM.test(item)) {
     return "half";
   }
-  if (QUARTERED_ITEM.test(item)) {
-    return "quarter";
+  return QUARTERED_ITEM.test(item) ? "quarter" : "half";
+}
+
+/**
+ * How finely a kitchen divides one of what this line counts.
+ *
+ * A measure overrules the food outright, because "100 g of apples" divides like
+ * a mass. A unit that counts does not: it bounds the division alongside the
+ * food, and the larger of the two shares wins. A tin of tomatoes halves because
+ * a tin halves, whatever a knife would do to the tomatoes inside it.
+ */
+export function divisibilityOf(unit: UnitInfo | null, item: string): Divisibility {
+  if (unit?.measures) {
+    return unitDivisibility(unit);
   }
-  return unit ? unitDivisibility(unit) : "half";
+  const food = fromFood(item);
+  return unit === null ? food : coarser(unitDivisibility(unit), food);
 }

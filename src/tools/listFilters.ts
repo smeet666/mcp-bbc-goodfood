@@ -13,7 +13,7 @@ import type { GoodFoodClient } from "../bbcgoodfood/client.js";
 import { GoodFoodError } from "../errors.js";
 import type { FilterGroup, FilterReport } from "../types.js";
 import { strictInput } from "./arguments.js";
-import { ok, SOURCE_NAME, type ToolResult } from "./shared.js";
+import { ok, oneLine, SOURCE_NAME, type ToolResult } from "./shared.js";
 
 export const listFiltersDescription =
   "List the axes a recipe search can be narrowed along on BBC Good Food, with the values each one " +
@@ -110,12 +110,17 @@ function notesFor(report: FilterReport): string[] {
  * text block learns nothing the structured payload does not also carry.
  */
 function renderGroup(group: FilterGroup): string {
-  const head = group.label === group.name ? group.name : `${group.name} (${group.label})`;
+  const head =
+    group.label === group.name
+      ? oneLine(group.name)
+      : `${oneLine(group.name)} (${oneLine(group.label)})`;
   if (group.options.length === 0) {
     return `${head}: no value listed`;
   }
   const values = group.options
-    .map((option) => (option.count === null ? option.value : `${option.value} ${option.count}`))
+    .map((option) =>
+      option.count === null ? oneLine(option.value) : `${oneLine(option.value)} ${option.count}`,
+    )
     .join(", ");
   return `${head}: ${values}`;
 }

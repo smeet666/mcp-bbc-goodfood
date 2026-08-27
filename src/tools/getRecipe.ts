@@ -14,7 +14,7 @@ import type { ScaledIngredient } from "../recipe/scale.js";
 import { scaleParts } from "../recipe/scale.js";
 import type { IngredientGroup, Recipe } from "../types.js";
 import { strictInput } from "./arguments.js";
-import { ok, SOURCE_NAME, type ToolResult } from "./shared.js";
+import { ok, oneLine, SOURCE_NAME, type ToolResult } from "./shared.js";
 
 export const getRecipeDescription =
   "Read one recipe on BBC Good Food: its ingredients, its steps, its times, its rating and its " +
@@ -190,15 +190,17 @@ function renderRecipe(recipe: Recipe, groups: readonly WrittenGroup[]): string {
     recipe.rating === null ? "" : `${recipe.rating}/5`,
   ].filter((mark) => mark !== "");
 
-  const lines = [recipe.title, marks.join(" · "), recipe.url].filter((line) => line !== "");
+  const lines = [oneLine(recipe.title), marks.join(" · "), recipe.url].filter(
+    (line) => line !== "",
+  );
 
   for (const group of groups) {
-    lines.push("", group.heading === null ? "Ingredients" : group.heading);
-    lines.push(...group.ingredients.map((line) => `- ${line.text}`));
+    lines.push("", group.heading === null ? "Ingredients" : oneLine(group.heading));
+    lines.push(...group.ingredients.map((line) => `- ${oneLine(line.text)}`));
   }
   if (recipe.steps.length > 0) {
     lines.push("", "Method");
-    lines.push(...recipe.steps.map((step, index) => `${index + 1}. ${step}`));
+    lines.push(...recipe.steps.map((step, index) => `${index + 1}. ${oneLine(step)}`));
   }
   return lines.join("\n");
 }

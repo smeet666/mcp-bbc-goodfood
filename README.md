@@ -163,9 +163,10 @@ which of the two happened.
 
 **A quantity is said in the unit that states it exactly.** Two grams divided by
 ten come back as 200 mg, and two hundred grams multiplied by twenty come back as
-4 kg. A figure only moves up the ladder when the larger unit holds it whole:
-1875 g stays in grams rather than becoming 1.9 kg, because a cook who cannot
-weigh the figure back is worse served by the shorter one.
+4 kg. A figure only moves up the ladder when the larger unit states it exactly:
+1875 g reads 1.875 kg, and 7492.5 g stays in grams because 7.4925 kg would need a
+fourth decimal. A cook who cannot weigh the figure back is worse served by the
+shorter one.
 
 **A recipe whose page states no servings cannot be put to a number of people.**
 The `servings` argument is then left without effect and a note says so, because
@@ -422,10 +423,10 @@ cuisinier à qui l'on annonce `2` mérite de savoir lequel des deux s'est produi
 
 **Une quantité s'énonce dans l'unité qui la dit exactement.** Deux grammes
 divisés par dix reviennent en 200 mg, et deux cents grammes multipliés par vingt
-reviennent en 4 kg. Un chiffre ne monte d'un échelon que si l'unité du dessus le
-porte entier : 1875 g reste en grammes plutôt que de devenir 1,9 kg, parce qu'un
-cuisinier qui ne peut pas repeser le chiffre est plus mal servi par le plus
-court.
+reviennent en 4 kg. Un chiffre ne monte d'un échelon que si l'unité du dessus
+l'énonce exactement : 1875 g se lit 1,875 kg, et 7492,5 g reste en grammes parce
+que 7,4925 kg demanderait une quatrième décimale. Un cuisinier qui ne peut pas
+repeser le chiffre est plus mal servi par le plus court.
 
 **Une recette dont la page n'énonce aucun nombre de parts ne peut pas être remise
 à un nombre de personnes.** L'argument `servings` reste alors sans effet et une

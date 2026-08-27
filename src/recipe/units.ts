@@ -123,6 +123,19 @@ const SPELLINGS: Readonly<Record<string, string>> = {
 };
 
 /** Units that state an amount rather than counting a thing. */
+/**
+ * Measures a recipe writes in fractions rather than in decimals.
+ *
+ * A cook reads half a teaspoon and a quarter of a cup. Nobody weighs half a
+ * gram, so a metric measure is written as a number.
+ */
+const FRACTIONAL_MEASURE = new Set(["tsp", "tbsp", "cup", "oz", "lb"]);
+
+/** Whether a recipe states this unit in fractions rather than in decimals. */
+export function usesFractions(unit: UnitInfo): boolean {
+  return !unit.measures || FRACTIONAL_MEASURE.has(unit.canonical);
+}
+
 const MEASURES = new Set([
   "mg",
   "g",
@@ -143,12 +156,18 @@ function measure(canonical: string): UnitInfo {
   return { canonical, measures: true };
 }
 
-/** The unit one step down the ladder, and how many of it fit in one. */
+/**
+ * The unit one step down the ladder, and how many of it fit in one.
+ *
+ * A volume lands in millilitres, whichever unit it started in, because that is
+ * the unit a kitchen writes a small volume in. Centilitres and decilitres are
+ * read where a line uses them, and are never a destination.
+ */
 const DEMOTIONS: Readonly<Record<string, { unit: UnitInfo; per: number }>> = {
   kg: { unit: measure("g"), per: 1000 },
   g: { unit: measure("mg"), per: 1000 },
-  l: { unit: measure("cl"), per: 100 },
-  dl: { unit: measure("cl"), per: 10 },
+  l: { unit: measure("ml"), per: 1000 },
+  dl: { unit: measure("ml"), per: 100 },
   cl: { unit: measure("ml"), per: 10 },
   tbsp: { unit: measure("tsp"), per: 3 },
   cup: { unit: measure("tbsp"), per: 16 },

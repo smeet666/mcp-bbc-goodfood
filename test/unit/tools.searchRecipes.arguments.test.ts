@@ -214,11 +214,18 @@ describe("search_recipes arguments", () => {
     }
   });
 
-  it("registers list_filters then search_recipes, each with an output schema", async () => {
+  // States the agreement rather than the roll call: the order is fixed, every
+  // tool declares an output schema, and search_recipes follows list_filters
+  // because a caller learns the values a restriction takes before using one.
+  // The roll call itself is written down once, elsewhere.
+  it("lists its tools in a fixed order, each with an output schema", async () => {
     const first = await listedTools();
     const second = await listedTools();
-    expect(first.map((tool) => tool.name)).toEqual(["list_filters", "search_recipes"]);
-    expect(second.map((tool) => tool.name)).toEqual(first.map((tool) => tool.name));
+    const names = first.map((tool) => tool.name);
+
+    expect(second.map((tool) => tool.name)).toEqual(names);
+    expect(names).toContain("list_filters");
+    expect(names.indexOf("search_recipes")).toBeGreaterThan(names.indexOf("list_filters"));
     for (const tool of first) {
       expect(tool.outputSchema).toBeDefined();
     }

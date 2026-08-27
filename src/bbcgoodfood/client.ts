@@ -7,12 +7,12 @@
  */
 
 import type { Config, Logger } from "../config.js";
-import type { FilterReport, Read, SearchReport } from "../types.js";
+import type { FilterReport, Read, Recipe, SearchReport } from "../types.js";
 import { Cache } from "./cache.js";
-import { fetchJson } from "./http.js";
-import { parseFilterReport, parseSearchReport } from "./parse.js";
+import { fetchJson, fetchText } from "./http.js";
+import { parseFilterReport, parseRecipe, parseSearchReport } from "./parse.js";
 import { RateLimiter } from "./rateLimiter.js";
-import { searchUrl } from "./urls.js";
+import { searchUrl, SITE_ORIGIN } from "./urls.js";
 
 export interface SearchOptions {
   limit?: number;
@@ -35,6 +35,7 @@ export class GoodFoodClient {
   private readonly limiter: RateLimiter;
   private readonly store: Cache<FilterReport>;
   private readonly searches: Cache<SearchReport>;
+  private readonly recipes: Cache<Recipe>;
 
   constructor(options: ClientOptions) {
     this.config = options.config;
@@ -46,6 +47,7 @@ export class GoodFoodClient {
       options.config.cacheTtlMs,
       options.config.cacheMaxEntries,
     );
+    this.recipes = new Cache<Recipe>(options.config.cacheTtlMs, options.config.cacheMaxEntries);
   }
 
   /**
@@ -147,6 +149,43 @@ export class GoodFoodClient {
     const report = parseSearchReport(payload, query);
     this.searches.set(url, report);
     return { data: report, cached: false };
+  }
+
+  /**
+   * Read one recipe from the page that publishes it.
+   *
+   * The identifier is the page's own path, which is what makes a row from a
+   * listing readable: the site's numeric id resolves to nothing.
+   */
+  async getRecipe(id: string): Promise<Read<Recipe>> {
+    const path = id.trim();
+    const url = `${SITE_ORIGIN}/${path.split("/").map(encodeURIComponent).join("/")}`;
+
+    const stored = this.recipes.get(url);
+    if (stored) {
+      this.logger.debug(`served from the store: ${url}`);
+      return { data: stored, cached: true };
+    }
+
+    const html = await this.limiter.schedule(() =>
+      fetchText({
+        url,
+        userAgent: this.config.userAgent,
+        timeoutMs: this.config.timeoutMs,
+        maxRetries: this.config.maxRetries,
+        limiter: this.limiter,
+        logger: this.logger,
+        ...(this.fetchImpl ? { fetchImpl: this.fetchImpl } : {}),
+      }),
+    );
+
+    // Parsed before it is stored, so a page nobody could read is never served
+    // back for the rest of the entry's lifetime.
+    const { recipe, skipped } = parseRecipe(html, path);
+    this.recipes.set(url, recipe);
+    return skipped.length > 0
+      ? { data: recipe, cached: false, skipped }
+      : { data: recipe, cached: false };
   }
 
   /** The spacing in force, reported rather than guessed. */

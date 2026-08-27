@@ -12,11 +12,13 @@ const payloadOf = (items: unknown, totalItems: unknown): unknown => ({
   searchResults: { totalItems, limit: 30, items },
 });
 
-const readable = (extra: Record<string, unknown>): unknown => ({
+/** The address carries the identifier, so two readable rows differ by it. */
+const readable = (extra: Record<string, unknown> & { slug?: string }): unknown => ({
   id: "1",
   title: "Keldish greens",
-  url: "https://www.bbcgoodfood.com/recipes/keldish-greens",
+  url: `https://www.bbcgoodfood.com/recipes/${extra.slug ?? "keldish-greens"}`,
   ...extra,
+  slug: undefined,
 });
 
 const failureCode = (payload: unknown, query: string): string => {
@@ -40,35 +42,42 @@ describe("parseSearchReport", () => {
   });
 
   describe("the rows it drops", () => {
-    it("keeps the one readable row of a degraded page and names the five it dropped", () => {
+    // The identifier is the page's own path, so a row carrying a title and an
+    // address is usable whether or not the site also numbered it. Only a row
+    // missing one of those two is set aside.
+    it("keeps the two readable rows of a degraded page and names the four it dropped", () => {
       const { rows, skipped } = parseSearchRows(fixture("search-degraded.json"));
 
-      expect(rows.map((row: SearchRow) => row.id)).toEqual(["321"]);
-      expect(skipped).toHaveLength(5);
+      expect(rows.map((row: SearchRow) => row.id)).toEqual([
+        "recipes/keldish-greens",
+        "recipes/no-id",
+      ]);
+      expect(skipped).toHaveLength(4);
     });
 
     it("names the dropped row by what it still carries", () => {
       const { skipped } = parseSearchRows(fixture("search-degraded.json"));
       const named = skipped.join(" | ");
 
+      // The site's own number names a row for a bug report even though it
+      // cannot fetch it, which is why it is still read for the wording.
       expect(named).toContain("322");
       expect(named).toContain("323");
-      expect(named).toContain("No identifier");
+      expect(named).toContain("No address at all");
     });
 
-    it("drops a row missing an identifier, a title or an address, and keeps its neighbours", () => {
+    it("drops a row missing a title or an address, and keeps its neighbours", () => {
       const cases: Record<string, unknown> = {
-        id: { title: "Marran wafers", url: "https://www.bbcgoodfood.com/recipes/marran-wafers" },
         title: { id: "9", url: "https://www.bbcgoodfood.com/recipes/marran-wafers" },
         url: { id: "9", title: "Marran wafers" },
       };
 
       for (const broken of Object.values(cases)) {
         const { rows, skipped } = parseSearchRows(
-          payloadOf([readable({ id: "8" }), broken, readable({ id: "10" })], 3),
+          payloadOf([readable({ slug: "first" }), broken, readable({ slug: "second" })], 3),
         );
 
-        expect(rows.map((row: SearchRow) => row.id)).toEqual(["8", "10"]);
+        expect(rows.map((row: SearchRow) => row.id)).toEqual(["recipes/first", "recipes/second"]);
         expect(skipped).toHaveLength(1);
       }
     });
@@ -86,9 +95,9 @@ describe("parseSearchReport", () => {
     });
 
     it("counts an empty field, or one made of spaces, as absent", () => {
+      // A blank id is no longer a reason to drop a row: the address carries the
+      // identifier. A blank title or address still is.
       const blanks: unknown[] = [
-        { id: "", title: "Marran wafers", url: "https://www.bbcgoodfood.com/recipes/wafers" },
-        { id: "   ", title: "Marran wafers", url: "https://www.bbcgoodfood.com/recipes/wafers" },
         { id: "9", title: "", url: "https://www.bbcgoodfood.com/recipes/wafers" },
         { id: "9", title: " \t ", url: "https://www.bbcgoodfood.com/recipes/wafers" },
         { id: "9", title: "Marran wafers", url: "" },
@@ -109,8 +118,8 @@ describe("parseSearchReport", () => {
       const report = parseSearchReport(fixture("search-degraded.json"), "keldish");
 
       expect(report.rows_seen).toBe(6);
-      expect(report.result_count).toBe(1);
-      expect(report.results).toHaveLength(1);
+      expect(report.result_count).toBe(2);
+      expect(report.results).toHaveLength(2);
       expect(report.rows_seen).not.toBe(report.result_count);
     });
 

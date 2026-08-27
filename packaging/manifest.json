@@ -3,7 +3,7 @@
   "name": "mcp-bbc-goodfood",
   "display_name": "BBC Good Food",
   "version": "0.1.0",
-  "description": "MCP server for BBC Good Food. Search recipes and list the axes a search can be narrowed by. No API key required.",
+  "description": "MCP server for BBC Good Food. Search recipes, read one, and list the axes a search can be narrowed by. No API key required.",
   "long_description": "List the axes a recipe search can be narrowed along on BBC Good Food, with the values each one takes and how many recipes carry them, measured inside one search or across the whole listing. The site accepts any value on a facet and answers one it does not know with a total of zero, so a guessed spelling comes back as a confident absence; publishing the vocabulary is what makes the question askable. Every answer also states how many of the rows the site served actually carry a word of the search, because the site answers a term it holds nothing for with a count and a page of rows all the same. Read-only, no API key and no account.",
   "author": {
     "name": "Damien Bouissou",
@@ -35,6 +35,14 @@
     {
       "name": "search_recipes",
       "description": "Search recipes and return a listing, narrowed by diet, cuisine, meal type, difficulty, a bound, or by leaving out what sits behind the site's subscription."
+    },
+    {
+      "name": "get_recipe",
+      "description": "Read one recipe: its ingredients, steps, times, rating and nutrition, from the page path a search row carries."
+    },
+    {
+      "name": "scale_ingredients",
+      "description": "Put a list of ingredient lines to a different number of people, with each line saying whether its figure is exact or was moved to stay usable in a kitchen."
     }
   ],
   "compatibility": {

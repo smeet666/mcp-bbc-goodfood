@@ -73,7 +73,7 @@ export const searchRecipesArgs = strictInput(searchRecipesInput);
 export type SearchRecipesArgs = z.infer<typeof searchRecipesArgs>;
 
 const searchRowSchema = z.object({
-  id: z.string().describe("Opaque to a caller. The site's own identifier for the recipe."),
+  id: z.string().describe("The page's own path. Pass it to get_recipe to read the recipe."),
   title: z.string(),
   url: z.string().describe("The public page. Show this when citing the recipe."),
   image_url: z.string().nullable(),

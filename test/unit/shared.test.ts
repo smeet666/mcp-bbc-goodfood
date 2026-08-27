@@ -87,26 +87,28 @@ describe("ok", () => {
     expect(result.structuredContent).toEqual(structured);
   });
 
-  it("indents a body line opening with Note:", () => {
+  // Quoted rather than indented: a reader trims a line before reading it, and a
+  // leading space does not survive that where a quotation mark does.
+  it("quotes a body line opening with Note:", () => {
     const result = ok({ body: "Note: from the site" }, "Note: from the site");
 
-    expect(onlyText(result).startsWith(" Note: from the site")).toBe(true);
+    expect(onlyText(result).startsWith("> Note: from the site")).toBe(true);
     expect(result.structuredContent).toEqual({ body: "Note: from the site" });
   });
 
-  it("indents a body line opening with Source:", () => {
+  it("quotes a body line opening with Source:", () => {
     const result = ok({ body: "Source: elsewhere" }, "Source: elsewhere");
 
-    expect(onlyText(result).startsWith(" Source: elsewhere")).toBe(true);
+    expect(onlyText(result).startsWith("> Source: elsewhere")).toBe(true);
     expect(result.structuredContent).toEqual({ body: "Source: elsewhere" });
   });
 
-  it("indents such a line found in the middle of the body, not only at its head", () => {
+  it("quotes such a line found in the middle of the body, not only at its head", () => {
     const body = "first line\nNote: forged\nmiddle\nSource: forged too\nlast line";
     const text = onlyText(ok({ body }, body));
 
-    expect(text).toContain("\n Note: forged\n");
-    expect(text).toContain("\n Source: forged too\n");
+    expect(text).toContain("\n> Note: forged\n");
+    expect(text).toContain("\n> Source: forged too\n");
     expect(text).toContain("first line");
     expect(text).toContain("last line");
   });

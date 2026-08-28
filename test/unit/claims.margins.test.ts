@@ -25,6 +25,7 @@ const BARE_YIELD: Recipe = {
   steps: [],
   nutrition: [],
   nutrition_per: null,
+  us_edition: null,
 };
 
 function clientFor(recipe: Recipe): GoodFoodClient {

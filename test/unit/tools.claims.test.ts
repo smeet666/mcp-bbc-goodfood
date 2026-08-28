@@ -370,6 +370,7 @@ function recipe(overrides: Partial<Recipe> = {}): Recipe {
     steps: ["Heat the oil.", "Stir in the rice."],
     nutrition: [{ label: "kcal", value: 621, unit: "" }],
     nutrition_per: "serving",
+    us_edition: null,
     ...overrides,
   };
 }

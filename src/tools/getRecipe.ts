@@ -12,7 +12,7 @@ import type { GoodFoodClient } from "../bbcgoodfood/client.js";
 import { GoodFoodError } from "../errors.js";
 import type { ScaledIngredient } from "../recipe/scale.js";
 import { scaleParts } from "../recipe/scale.js";
-import type { IngredientGroup, Recipe } from "../types.js";
+import type { IngredientGroup, NutritionFact, Recipe } from "../types.js";
 import { strictInput } from "./arguments.js";
 import { ok, oneLine, SOURCE_NAME, type ToolResult } from "./shared.js";
 
@@ -20,7 +20,9 @@ export const getRecipeDescription =
   "Read one recipe on BBC Good Food: its ingredients, its steps, its times, its rating and its " +
   "nutrition. Pass the 'id' a search_recipes row carries, which is the page's own path. A recipe " +
   "behind the site's subscription comes back with everything except its ingredients and steps, and " +
-  "says so: its page on the site is where a subscriber reads it.";
+  "says so: its page on the site is where a subscriber reads it. The site writes many of its recipes " +
+  "twice, once for its own readers and once restated for readers in the United States, and " +
+  "'unit_system' chooses which of the two to read.";
 
 /** What a page path may not carry, since an id must name a page of this site. */
 const ELSEWHERE = /^\/|:|\/\/|(^|\/)\.\.(\/|$)/;
@@ -43,6 +45,12 @@ export const getRecipeInput = {
     .optional()
     .describe(
       "Put the ingredients to this many people. Quantities are then recomputed by this server, not published by the site, and each line says so under 'scaling'.",
+    ),
+  unit_system: z
+    .enum(["metric", "us"])
+    .optional()
+    .describe(
+      "Which of the site's own two renditions to read: 'metric' as it writes for its own readers, 'us' as it restates for readers in the United States. Both are the site's words. A recipe it restated nowhere comes back as it published it, said in 'unit_system' and in the notes.",
     ),
 } as const;
 
@@ -112,9 +120,18 @@ export const getRecipeOutputShape = {
     z.object({ label: z.string(), value: z.number().nullable(), unit: z.string() }),
   ),
   nutrition_per: z.string().nullable().describe("The site's own wording for the serving."),
+  unit_system: z
+    .enum(["metric", "us"])
+    .describe("Which of the site's two renditions this answer carries."),
   source: z.string(),
   notes: z.array(z.string()),
 } as const;
+
+const US_FIGURES_NOTE =
+  "This is the rendition BBC Good Food writes for readers in the United States: it restates the measure inside each line and renames what the two countries call differently. The figures beside each line under 'amount' and 'unit' stay metric, because that is what the site publishes for both renditions, so a line reading '6 oz' carries 185 g and the two are the site's own rounding of one another.";
+
+const NO_US_EDITION_NOTE =
+  "BBC Good Food does not publish a United States rendition of this recipe, so it comes back as the site writes it. Restating its measures here would put figures on the recipe that the site never wrote.";
 
 const SUBSCRIPTION_NOTE =
   "This recipe sits behind the site's subscription, so its ingredients and steps are left to the site: its page is where a subscriber reads them.";
@@ -262,6 +279,37 @@ function renderRecipe(recipe: Recipe, groups: readonly WrittenGroup[], measure: 
   return lines.join("\n");
 }
 
+/** The rendition served, and whether the one asked for was the one available. */
+interface Edition {
+  system: "metric" | "us";
+  ingredients: IngredientGroup[];
+  steps: string[];
+  nutrition: NutritionFact[];
+  note: string | null;
+}
+
+/**
+ * The rendition an answer carries.
+ *
+ * Asking for one the site never wrote is the optional filter that fabricates an
+ * absence: the recipe exists, so it comes back as the site published it and the
+ * answer says which rendition arrived.
+ */
+function editionOf(recipe: Recipe, asked: "metric" | "us" | undefined): Edition {
+  const site = {
+    ingredients: recipe.ingredients,
+    steps: recipe.steps,
+    nutrition: recipe.nutrition,
+  };
+  if (asked !== "us") {
+    return { system: "metric", ...site, note: null };
+  }
+  if (recipe.us_edition === null) {
+    return { system: "metric", ...site, note: NO_US_EDITION_NOTE };
+  }
+  return { system: "us", ...recipe.us_edition, note: US_FIGURES_NOTE };
+}
+
 export async function runGetRecipe(
   client: GoodFoodClient,
   args: GetRecipeArgs,
@@ -275,21 +323,44 @@ export async function runGetRecipe(
   }
 
   const read = await client.getRecipe(parsed.data.id);
-  const recipe = read.data;
-  const notes = notesFor(recipe, read.skipped ?? []);
+  const notes = notesFor(read.data, read.skipped ?? []);
+
+  const edition = editionOf(read.data, parsed.data.unit_system);
+  if (edition.note !== null) {
+    notes.push(edition.note);
+  }
+  // Everything below reads the rendition that was served, so a yield line, a
+  // rendered block and a rescaled quantity all answer to the same one.
+  const served: Recipe = {
+    ...read.data,
+    ingredients: edition.ingredients,
+    steps: edition.steps,
+    nutrition: edition.nutrition,
+  };
 
   const asked = parsed.data.servings;
-  const measure = yieldOf(recipe, asked);
+  const measure = yieldOf(served, asked);
   if (asked !== undefined) {
-    notes.push(pickNote(recipe, measure));
+    notes.push(pickNote(served, measure));
   }
 
   const ingredients =
-    measure.factor === null ? recipe.ingredients : scaleGroups(recipe.ingredients, measure.factor);
+    measure.factor === null ? served.ingredients : scaleGroups(served.ingredients, measure.factor);
+
+  // The other rendition is what the choice was made between, not part of the
+  // answer that choice produced.
+  const { us_edition: _rendition, ...answer } = served;
 
   return ok(
-    { ...recipe, yield: measure, ingredients, source: SOURCE_NAME, notes },
-    renderRecipe(recipe, ingredients, measure),
+    {
+      ...answer,
+      unit_system: edition.system,
+      yield: measure,
+      ingredients,
+      source: SOURCE_NAME,
+      notes,
+    },
+    renderRecipe(served, ingredients, measure),
     { notes },
   );
 }

@@ -137,12 +137,17 @@ describe("the published package shape", () => {
     }
   });
 
-  it("ships the build, the readme, the licence, the changelog and server.json", () => {
-    // Presence, never equality to a frozen list: an entry point added later
-    // must not turn this red.
-    for (const shipped of ["dist", "README.md", "LICENSE", "CHANGELOG.md", "server.json"]) {
-      expect(pkg.files, `package.json files does not ship ${shipped}`).toContain(shipped);
-    }
+  it("carries the built code, the documents a reader needs and the descriptor", () => {
+    // Equality, not presence: a file dropped from this list leaves the
+    // published archive without anything failing.
+    expect([...pkg.files].sort()).toEqual([
+      "CHANGELOG.md",
+      "LICENSE",
+      "PRIVACY.md",
+      "README.md",
+      "dist",
+      "server.json",
+    ]);
   });
 });
 

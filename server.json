@@ -65,6 +65,14 @@
           "isRequired": false
         }
       ]
+    },
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/smeet666/mcp-bbc-goodfood/releases/download/v0.1.0/mcp-bbc-goodfood-0.1.0.mcpb",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
     }
   ]
 }

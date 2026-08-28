@@ -29,7 +29,7 @@ interface PackageJson {
 interface ServerJson {
   description: string;
   version: string;
-  packages: { version: string }[];
+  packages: { registryType: string; version: string; identifier: string }[];
 }
 
 interface ManifestJson {
@@ -78,6 +78,18 @@ describe("the version number", () => {
     );
     expect(manifest.version, "packaging/manifest.json version left package.json").toBe(declared);
     expect(PKG_VERSION, "src/version.ts PKG_VERSION left package.json").toBe(declared);
+  });
+
+  it("is the one the bundle URL serves", () => {
+    // The address carries a number of its own, and a hand-written one survives a
+    // bump: the registry then advertises one release and serves the file of
+    // another, or names a release that was skipped and answers 404.
+    const bundle = serverJson.packages.find((each) => each.registryType === "mcpb");
+
+    expect(bundle, "server.json declares no mcpb package").toBeDefined();
+    expect(bundle?.version, "the bundle package version left package.json").toBe(pkg.version);
+    expect(bundle?.identifier).toContain(`/v${pkg.version}/`);
+    expect(bundle?.identifier).toContain(`-${pkg.version}.mcpb`);
   });
 });
 

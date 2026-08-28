@@ -38,7 +38,7 @@
     },
     {
       "name": "get_recipe",
-      "description": "Read one recipe: its ingredients, steps, times, rating and nutrition, from the page path a search row carries."
+      "description": "Read one recipe: its ingredients, steps, times, rating and nutrition, from the page path a search row carries, in either of the two renditions the site writes."
     },
     {
       "name": "scale_ingredients",

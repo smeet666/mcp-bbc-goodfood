@@ -168,4 +168,24 @@ export interface Recipe {
   nutrition: NutritionFact[];
   /** The site's own wording for what the nutrition is stated per. */
   nutrition_per: string | null;
+  /** The site's own rendition for readers in the United States, where it wrote one. */
+  us_edition: UsEdition | null;
+}
+
+/**
+ * The second rendition of a recipe, written by the site for readers in the
+ * United States.
+ *
+ * It restates the measure inside each line and renames what the two countries
+ * call differently, a frying pan against a skillet. The structured quantity
+ * beside each line is the one the site publishes, which stays metric in both
+ * renditions: a line reading "6 oz" carries 185 g, because that is the figure
+ * the page states and "6 oz" is the site's own rounding of it.
+ */
+export interface UsEdition {
+  /** Empty when the recipe sits behind the subscription. */
+  ingredients: IngredientGroup[];
+  /** Empty when the recipe sits behind the subscription. */
+  steps: string[];
+  nutrition: NutritionFact[];
 }

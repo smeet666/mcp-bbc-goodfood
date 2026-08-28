@@ -82,6 +82,7 @@ const STATED: Recipe = {
   steps: ["Mix."],
   nutrition: [{ label: "kcal", value: 200, unit: "" }],
   nutrition_per: "serving",
+  us_edition: null,
 };
 
 /**

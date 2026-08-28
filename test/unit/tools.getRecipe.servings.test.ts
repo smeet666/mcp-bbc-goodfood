@@ -79,6 +79,7 @@ function plainRecipe(overrides: Partial<Recipe> = {}): Recipe {
     steps: ["Heat the oil in a large frying pan.", "Stir in the rice and simmer."],
     nutrition: [{ label: "kcal", value: 621, unit: "" }],
     nutrition_per: "serving",
+    us_edition: null,
     ...overrides,
   };
 }

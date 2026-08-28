@@ -18,6 +18,7 @@ import type {
   RecipeIngredient,
   SearchReport,
   SearchRow,
+  UsEdition,
 } from "../types.js";
 import { SERVED_ROW_CEILING } from "../types.js";
 
@@ -547,6 +548,28 @@ function readNutrition(published: unknown): NutritionFact[] {
 }
 
 /**
+ * The rendition the site writes for readers in the United States.
+ *
+ * The flag alone is not the edition: a page that claims one and carries no
+ * lines to read would answer a request for it with an absence made up here.
+ * Both halves have to be on the page for it to exist.
+ */
+function readUsEdition(
+  page: Record<string, unknown>,
+  premium: boolean,
+  skipped: string[],
+): UsEdition | null {
+  if (page.hasUSLocalisation !== true || !Array.isArray(page.ingredientsUS)) {
+    return null;
+  }
+  return {
+    ingredients: premium ? [] : readIngredientGroups(page.ingredientsUS, skipped),
+    steps: premium ? [] : readSteps(page.methodStepsUS, skipped),
+    nutrition: readNutrition(page.nutritionsUS),
+  };
+}
+
+/**
  * Read one recipe from the page that publishes it.
  *
  * A recipe behind the subscription comes back without its ingredients and its
@@ -606,6 +629,7 @@ export function parseRecipe(html: string, id: string): { recipe: Recipe; skipped
       steps: premium ? [] : readSteps(page.methodSteps, skipped),
       nutrition: readNutrition(page.nutritions),
       nutrition_per: readText(page.nutritionalInfoCaption),
+      us_edition: readUsEdition(page, premium, skipped),
     },
     skipped,
   };

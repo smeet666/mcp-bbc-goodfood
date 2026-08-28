@@ -83,10 +83,18 @@ than as a refusal. Call `list_filters` first.
 Reads one recipe: its ingredients, its steps, its times, its rating and its
 nutrition.
 
-| Argument   | Type              | Meaning                                                    |
-| ---------- | ----------------- | ---------------------------------------------------------- |
-| `id`       | string            | The page's own path, as a `search_recipes` row carries it. |
-| `servings` | integer, optional | Put the ingredients to this many people.                   |
+| Argument      | Type                       | Meaning                                                    |
+| ------------- | -------------------------- | ---------------------------------------------------------- |
+| `id`          | string                     | The page's own path, as a `search_recipes` row carries it. |
+| `servings`    | integer, optional          | Put the ingredients to this many people.                   |
+| `unit_system` | `metric` or `us`, optional | Which of the site's two renditions to read.                |
+
+The site writes many of its recipes twice: once for its own readers, and once
+restated for readers in the United States, where a frying pan becomes a skillet
+and plain flour becomes all-purpose flour. Both are the site's own words, and
+`unit_system` hands over the one asked for without converting anything. The
+answer names the rendition it carries, since a recipe the site restated nowhere
+comes back as it published it.
 
 A recipe behind the site's subscription comes back with everything except its
 ingredients and its steps, and says so. The page carries them, which is exactly
@@ -175,6 +183,13 @@ shorter one.
 **A recipe whose page states no servings cannot be put to a number of people.**
 The `servings` argument is then left without effect and a note says so, because
 the multiplication would have to start from a figure the site never wrote.
+
+**The United States rendition restates the measure, and the figures beside it
+stay metric.** The site writes "6 oz" where its own edition writes "185g", and it
+publishes the structured quantity once, in grams, for both. So a line read in
+that rendition carries "6 oz" in its text and 185 g under `amount` and `unit`,
+and a note says so. The site rounds each into the other, so putting 6 under
+`amount` would state a quantity the page never published.
 
 ## Install
 
@@ -342,10 +357,18 @@ une absence assurée et non comme un refus. Appelle `list_filters` d'abord.
 Lit une recette : ses ingrédients, ses étapes, ses temps, sa note et ses valeurs
 nutritionnelles.
 
-| Argument   | Type               | Sens                                                                 |
-| ---------- | ------------------ | -------------------------------------------------------------------- |
-| `id`       | chaîne             | Le chemin de la page, tel qu'une ligne de `search_recipes` le porte. |
-| `servings` | entier, facultatif | Remet les ingrédients à ce nombre de parts.                          |
+| Argument      | Type                         | Sens                                                                 |
+| ------------- | ---------------------------- | -------------------------------------------------------------------- |
+| `id`          | chaîne                       | Le chemin de la page, tel qu'une ligne de `search_recipes` le porte. |
+| `servings`    | entier, facultatif           | Remet les ingrédients à ce nombre de parts.                          |
+| `unit_system` | `metric` ou `us`, facultatif | Laquelle des deux rédactions du site lire.                           |
+
+Le site écrit beaucoup de ses recettes deux fois : une pour ses propres lecteurs,
+et une reformulée pour les lecteurs des États-Unis, où une poêle devient un
+_skillet_ et la farine ordinaire de la farine tout usage. Les deux sont les mots
+du site, et `unit_system` rend celle qu'on demande sans rien convertir. La
+réponse nomme la rédaction qu'elle porte, puisqu'une recette que le site n'a
+reformulée nulle part revient telle qu'il l'a publiée.
 
 Une recette derrière l'abonnement du site revient avec tout sauf ses ingrédients
 et ses étapes, et le dit. La page les porte, et c'est exactement pourquoi la
@@ -436,6 +459,13 @@ repeser le chiffre est plus mal servi par le plus court.
 à un nombre de personnes.** L'argument `servings` reste alors sans effet et une
 note le dit, parce que la multiplication devrait partir d'un chiffre que le site
 n'a jamais écrit.
+
+**La rédaction américaine reformule la mesure, et les chiffres à côté restent
+métriques.** Le site écrit « 6 oz » là où son édition à lui écrit « 185g », et il
+ne publie la quantité structurée qu'une fois, en grammes, pour les deux. Une
+ligne lue dans cette rédaction porte donc « 6 oz » dans son texte et 185 g sous
+`amount` et `unit`, et une note le dit. Le site arrondit l'un vers l'autre, donc
+mettre 6 sous `amount` énoncerait une quantité que la page n'a jamais publiée.
 
 ## Installation
 

@@ -70,6 +70,7 @@ function plainRecipe(overrides: Partial<Recipe> = {}): Recipe {
       { label: "saturates", value: 5, unit: "g" },
     ],
     nutrition_per: "serving",
+    us_edition: null,
     ...overrides,
   };
 }
@@ -122,8 +123,8 @@ async function refusalOf(client: GoodFoodClient, args: unknown): Promise<Error> 
 }
 
 describe("the arguments get_recipe declares", () => {
-  it("carries the identifier and the servings, and nothing else", () => {
-    expect(Object.keys(getRecipeInput)).toStrictEqual(["id", "servings"]);
+  it("carries the identifier, the servings and the rendition, and nothing else", () => {
+    expect(Object.keys(getRecipeInput)).toStrictEqual(["id", "servings", "unit_system"]);
   });
 
   it("requires the identifier", () => {

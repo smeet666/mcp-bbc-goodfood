@@ -1,6 +1,6 @@
 {
   "name": "mcp-bbc-goodfood",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "MCP server for BBC Good Food. Search recipes, read ingredients and steps, and rescale quantities. No API key required.",
   "keywords": [
     "mcp",

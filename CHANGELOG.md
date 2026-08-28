@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the versions
 follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 1.0.0
 
 ### Added
 
@@ -13,8 +13,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   readers in the United States, where a frying pan becomes a skillet and plain
   flour becomes all-purpose flour. Both are the site's own words and nothing is
   converted here. The answer names the rendition it carries under `unit_system`,
-  so a recipe the site restated nowhere is served as it published it rather than
-  as an absence. In the United States rendition the measure is restated inside
+  so a recipe the site restated nowhere is served as it published it. In the United States rendition the measure is restated inside
   each line while `amount` and `unit` beside it stay metric, because that is the
   figure the site publishes for both, and a note says so.
 

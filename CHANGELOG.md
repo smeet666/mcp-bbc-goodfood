@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.1
+
+- **Every tool is documented, with its arguments and what its answer carries.**
+  The README is written for a person deciding whether to install and for a
+  program installing on its own, and a test holds both halves to what the server
+  registers.
+- **The privacy policy travels in the package.** It states the hosts contacted,
+  what a request carries, what is held and for how long.
+- **The manifest names every tool the server registers**, which a host reads
+  before installing anything.
+
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the versions
 follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

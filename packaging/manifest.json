@@ -30,19 +30,177 @@
   "tools": [
     {
       "name": "list_filters",
-      "description": "List the axes a recipe search can be narrowed along, with the values each takes and how many recipes carry them."
+      "description": "List the axes a recipe search can be narrowed along, with the values each takes and how many recipes carry them.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "description": "A search to measure the counts inside. The site counts its facets over the rows a search returns, so a count without a query describes the whole listing instead.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "search_recipes",
-      "description": "Search recipes and return a listing, narrowed by diet, cuisine, meal type, difficulty, a bound, or by leaving out what sits behind the site's subscription."
+      "description": "Search recipes and return a listing, narrowed by diet, cuisine, meal type, difficulty, a bound, or by leaving out what sits behind the site's subscription.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "A dish, an ingredient, a technique."
+          },
+          "limit": {
+            "description": "Rows to return. Default 30.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "page": {
+            "description": "Which page of rows. Default 1.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 334
+          },
+          "sort": {
+            "description": "How the site orders the rows. Default 'relevant'.",
+            "type": "string",
+            "enum": ["relevant", "rating", "published", "quickest"]
+          },
+          "diet": {
+            "description": "A value list_filters publishes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "cuisine": {
+            "description": "A value list_filters publishes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "meal_type": {
+            "description": "A value list_filters publishes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "difficulty": {
+            "description": "A value list_filters publishes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "max_total_minutes": {
+            "description": "Whole recipe, minutes.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          },
+          "max_calories": {
+            "description": "Per serving.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "min_servings": {
+            "description": "At least this many servings.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "min_rating": {
+            "description": "At least this many stars, 1 to 5.",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "exclude_premium": {
+            "description": "Drop the rows that sit behind the site's subscription. The site offers no such restriction, so the rows are removed from the page after it arrives: a page comes back shorter than the limit asked for, and a short page is not the end of the results.",
+            "type": "boolean"
+          }
+        },
+        "required": ["query"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "get_recipe",
-      "description": "Read one recipe: its ingredients, steps, times, rating and nutrition, from the page path a search row carries, in either of the two renditions the site writes."
+      "description": "Read one recipe: its ingredients, steps, times, rating and nutrition, from the page path a search row carries, in either of the two renditions the site writes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "The page's own path, as a search_recipes row carries it."
+          },
+          "servings": {
+            "description": "Put the ingredients to this many people. Quantities are then recomputed by this server, not published by the site, and each line says so under 'scaling'.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "unit_system": {
+            "description": "Which of the site's own two renditions to read: 'metric' as it writes for its own readers, 'us' as it restates for readers in the United States. Both are the site's words. A recipe it restated nowhere comes back as it published it, said in 'unit_system' and in the notes.",
+            "type": "string",
+            "enum": ["metric", "us"]
+          }
+        },
+        "required": ["id"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "scale_ingredients",
-      "description": "Put a list of ingredient lines to a different number of people, with each line saying whether its figure is exact or was moved to stay usable in a kitchen."
+      "description": "Put a list of ingredient lines to a different number of people, with each line saying whether its figure is exact or was moved to stay usable in a kitchen.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ingredients": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            },
+            "description": "The lines to scale, as a recipe writes them, such as '200g plain flour'."
+          },
+          "factor": {
+            "description": "What to multiply every quantity by. Pass this or the servings pair, never both.",
+            "type": "number",
+            "minimum": 0.001,
+            "maximum": 1000
+          },
+          "from_servings": {
+            "description": "How many people the list feeds as written.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "to_servings": {
+            "description": "How many people it should feed.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": ["ingredients"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     }
   ],
   "compatibility": {

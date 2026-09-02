@@ -1,0 +1,1061 @@
+{
+  "author": "Damien Bouissou",
+  "authorUrl": "https://github.com/smeet666",
+  "description": "MCP server for BBC Good Food. Search recipes, read ingredients and steps, and rescale quantities. No API key required.",
+  "homepage": "https://github.com/smeet666/mcp-bbc-goodfood#readme",
+  "identifier": "smeet666-mcp-bbc-goodfood",
+  "name": "mcp-bbc-goodfood",
+  "prompts": [],
+  "resources": [],
+  "tags": [
+    "mcp",
+    "model-context-protocol",
+    "bbc-good-food",
+    "recipes",
+    "cooking",
+    "ingredient-scaling"
+  ],
+  "tools": [
+    {
+      "name": "list_filters",
+      "title": "List the ways a search can be narrowed",
+      "description": "List the axes a recipe search can be narrowed along on BBC Good Food, with the values each one takes and how many recipes carry them. Pass 'query' to measure the counts inside one search, or leave it out for the site's whole listing. Read this before narrowing a search: the site accepts any value on a facet and answers one it does not know with a total of zero, so a guessed spelling comes back as a confident absence. The values listed are an excerpt of the most frequent ones, and the site accepts others that are not shown.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "description": "A search to measure the counts inside. The site counts its facets over the rows a search returns, so a count without a query describes the whole listing instead.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The search the counts were measured in, trimmed."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The site's own name for the axis."
+                },
+                "label": {
+                  "type": "string",
+                  "description": "The site's own wording for the axis."
+                },
+                "argument": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The search_recipes argument that restricts this axis. Null where a search takes none. A value listed here is in the site's units and may need converting before it is passed."
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "description": "The value as the site publishes it, in the site's own units."
+                      },
+                      "label": {
+                        "type": "string",
+                        "description": "The site's own wording for the value."
+                      },
+                      "count": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Recipes carrying the value within this scope. Null when the site published none."
+                      }
+                    },
+                    "required": ["value", "label", "count"],
+                    "additionalProperties": false
+                  }
+                },
+                "option_count": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "How many options are listed here, which is not how many the site accepts."
+                }
+              },
+              "required": ["name", "label", "argument", "options", "option_count"],
+              "additionalProperties": false
+            }
+          },
+          "filter_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "total_available": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Recipes the site says this scope holds. Null when it published no figure."
+          },
+          "total_is_ceiling": {
+            "type": "boolean",
+            "description": "True when the total sits on the largest number of rows one search will serve, so it states a floor rather than a count."
+          },
+          "source": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "query",
+          "filters",
+          "filter_count",
+          "total_available",
+          "total_is_ceiling",
+          "source",
+          "notes"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "search_recipes",
+      "title": "Search recipes",
+      "description": "Search recipes on BBC Good Food and return a listing. Narrow it with 'diet', 'cuisine', 'meal_type', 'difficulty' or a bound such as 'max_total_minutes'; call list_filters first for the values each one takes, since the site answers a value it does not know with a count of zero. The site ranks rather than filters: it answers a term it holds nothing for with rows all the same, so read the titles rather than trusting the count. Each row carries the page to read the recipe on.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "A dish, an ingredient, a technique."
+          },
+          "limit": {
+            "description": "Rows to return. Default 30.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "page": {
+            "description": "Which page of rows. Default 1.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 334
+          },
+          "sort": {
+            "description": "How the site orders the rows. Default 'relevant'.",
+            "type": "string",
+            "enum": ["relevant", "rating", "published", "quickest"]
+          },
+          "diet": {
+            "description": "A value list_filters publishes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "cuisine": {
+            "description": "A value list_filters publishes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "meal_type": {
+            "description": "A value list_filters publishes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "difficulty": {
+            "description": "A value list_filters publishes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "max_total_minutes": {
+            "description": "Whole recipe, minutes.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          },
+          "max_calories": {
+            "description": "Per serving.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "min_servings": {
+            "description": "At least this many servings.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "min_rating": {
+            "description": "At least this many stars, 1 to 5.",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "exclude_premium": {
+            "description": "Drop the rows that sit behind the site's subscription. The site offers no such restriction, so the rows are removed from the page after it arrives: a page comes back shorter than the limit asked for, and a short page is not the end of the results.",
+            "type": "boolean"
+          }
+        },
+        "required": ["query"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The page's own path. Pass it to get_recipe to read the recipe."
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "The public page. Show this when citing the recipe."
+                },
+                "image_url": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rating": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "1 to 5. Null when the site published none."
+                },
+                "rating_count": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "premium": {
+                  "type": "boolean",
+                  "description": "True when the recipe sits behind the site's subscription."
+                },
+                "total_minutes": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Null when the site states no time."
+                },
+                "difficulty": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The site's own wording, such as 'Easy'."
+                },
+                "author": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "url",
+                "image_url",
+                "rating",
+                "rating_count",
+                "premium",
+                "total_minutes",
+                "difficulty",
+                "author"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "result_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Rows rendered, after anything unreadable was set aside."
+          },
+          "total_available": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Recipes the site says the search holds."
+          },
+          "total_is_ceiling": {
+            "type": "boolean",
+            "description": "True when the total sits on the most rows one search will serve, so it states a floor."
+          },
+          "rows_seen": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Rows the site served, before anything was set aside."
+          },
+          "restrictions_lifted": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Restrictions let go of so the search could run again after the restricted one returned nothing."
+          },
+          "premium_dropped": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Rows removed from this page for sitting behind the site's subscription."
+          },
+          "source": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "query",
+          "results",
+          "result_count",
+          "total_available",
+          "total_is_ceiling",
+          "rows_seen",
+          "restrictions_lifted",
+          "premium_dropped",
+          "source",
+          "notes"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_recipe",
+      "title": "Read a recipe",
+      "description": "Read one recipe on BBC Good Food: its ingredients, its steps, its times, its rating and its nutrition. Pass the 'id' a search_recipes row carries, which is the page's own path. A recipe behind the site's subscription comes back with everything except its ingredients and steps, and says so: its page on the site is where a subscriber reads it. The site writes many of its recipes twice, once for its own readers and once restated for readers in the United States, and 'unit_system' chooses which of the two to read.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "The page's own path, as a search_recipes row carries it."
+          },
+          "servings": {
+            "description": "Put the ingredients to this many people. Quantities are then recomputed by this server, not published by the site, and each line says so under 'scaling'.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "unit_system": {
+            "description": "Which of the site's own two renditions to read: 'metric' as it writes for its own readers, 'us' as it restates for readers in the United States. Both are the site's words. A recipe it restated nowhere comes back as it published it, said in 'unit_system' and in the notes.",
+            "type": "string",
+            "enum": ["metric", "us"]
+          }
+        },
+        "required": ["id"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "The page. Show this when citing the recipe."
+          },
+          "premium": {
+            "type": "boolean",
+            "description": "True when the recipe sits behind the site's subscription."
+          },
+          "yield_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The site's own wording, such as 'Serves 4 - 6'."
+          },
+          "yield_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The first whole number of that wording."
+          },
+          "prep_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cook_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "difficulty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "diets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "1 to 5. Null when nobody has rated it."
+          },
+          "rating_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "yield": {
+            "type": "object",
+            "properties": {
+              "original_count": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The servings the site states."
+              },
+              "original_text": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The site's own wording for them."
+              },
+              "requested": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The servings asked for, if any."
+              },
+              "unit": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "factor": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Null when the site states no servings to scale from."
+              }
+            },
+            "required": ["original_count", "original_text", "requested", "unit", "factor"],
+            "additionalProperties": false,
+            "description": "What the ingredients were put to, and what they were put from."
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "heading": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "ingredients": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "text": {
+                            "type": "string",
+                            "description": "The line as the site composes it."
+                          },
+                          "amount": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "Null when the site states no quantity."
+                          },
+                          "unit": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "item": {
+                            "type": "string",
+                            "description": "What goes in, without its quantity."
+                          },
+                          "note": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "What to do to it beforehand, such as 'thinly sliced'."
+                          },
+                          "term": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "The site's own normalised name for it."
+                          }
+                        },
+                        "required": ["text", "amount", "unit", "item", "note", "term"],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "text": {
+                            "type": "string",
+                            "description": "The line as it now reads."
+                          },
+                          "original": {
+                            "type": "string",
+                            "description": "The line as the site composes it."
+                          },
+                          "scaling": {
+                            "type": "string",
+                            "enum": ["scaled", "rounded", "unscaled"],
+                            "description": "'scaled': the arithmetic landed exactly. 'rounded': the figure moved to stay usable in a kitchen. 'unscaled': the line carried no quantity."
+                          },
+                          "amount": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "amount_max": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "unit": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": ["text", "original", "scaling", "amount", "amount_max", "unit"],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": ["heading", "ingredients"],
+              "additionalProperties": false
+            },
+            "description": "Empty when the recipe sits behind the site's subscription."
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Empty when the recipe sits behind the site's subscription."
+          },
+          "nutrition": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "unit": {
+                  "type": "string"
+                }
+              },
+              "required": ["label", "value", "unit"],
+              "additionalProperties": false
+            }
+          },
+          "nutrition_per": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The site's own wording for the serving."
+          },
+          "unit_system": {
+            "type": "string",
+            "enum": ["metric", "us"],
+            "description": "Which of the site's two renditions this answer carries."
+          },
+          "source": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "url",
+          "premium",
+          "yield_text",
+          "yield_count",
+          "prep_minutes",
+          "cook_minutes",
+          "total_minutes",
+          "difficulty",
+          "diets",
+          "author",
+          "rating",
+          "rating_count",
+          "description",
+          "yield",
+          "ingredients",
+          "steps",
+          "nutrition",
+          "nutrition_per",
+          "unit_system",
+          "source",
+          "notes"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "scale_ingredients",
+      "title": "Scale a list of ingredients",
+      "description": "Put a list of ingredient lines to a different number of people. Pass 'factor', or else the pair 'from_servings' and 'to_servings'. Quantities are recomputed by this server and not by the site, and every line says under 'scaling' whether the arithmetic landed exactly, whether the figure was moved to stay usable in a kitchen, or whether the line carried nothing to multiply.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ingredients": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            },
+            "description": "The lines to scale, as a recipe writes them, such as '200g plain flour'."
+          },
+          "factor": {
+            "description": "What to multiply every quantity by. Pass this or the servings pair, never both.",
+            "type": "number",
+            "minimum": 0.001,
+            "maximum": 1000
+          },
+          "from_servings": {
+            "description": "How many people the list feeds as written.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "to_servings": {
+            "description": "How many people it should feed.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": ["ingredients"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "factor": {
+            "type": "number",
+            "description": "What every quantity was multiplied by."
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "description": "The line as it now reads."
+                },
+                "original": {
+                  "type": "string",
+                  "description": "The line as it was given."
+                },
+                "scaling": {
+                  "type": "string",
+                  "enum": ["scaled", "rounded", "unscaled"],
+                  "description": "'scaled': the arithmetic landed exactly. 'rounded': the figure moved to stay usable in a kitchen. 'unscaled': the line carried no quantity."
+                },
+                "amount": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "amount_max": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The upper bound when the line gives a range."
+                },
+                "unit": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": ["text", "original", "scaling", "amount", "amount_max", "unit"],
+              "additionalProperties": false
+            }
+          },
+          "scaled_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Lines whose arithmetic landed exactly."
+          },
+          "rounded_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Lines whose figure was moved."
+          },
+          "unscaled_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Lines that carried no quantity to multiply."
+          },
+          "source": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "factor",
+          "ingredients",
+          "scaled_count",
+          "rounded_count",
+          "unscaled_count",
+          "source",
+          "notes"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ],
+  "version": "1.0.1"
+}

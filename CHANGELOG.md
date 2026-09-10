@@ -1,6 +1,14 @@
 # Changelog
 
-## 1.0.1
+## 1.1.0
+
+- **The largest page this reads is a setting, and pages past it are refused.**
+  A deadline abandons a body that arrives slowly; one that arrives quickly and
+  large is never abandoned by it, and it lands in memory in one piece before
+  anything looks at it. The body is read in pieces and stopped at
+  `BGF_MAX_BODY_BYTES`, eight megabytes by default.
+
+## 1.1.0
 
 - **Every tool is documented, with its arguments and what its answer carries.**
   The README is written for a person deciding whether to install and for a

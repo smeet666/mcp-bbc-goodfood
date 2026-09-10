@@ -18,11 +18,21 @@ import {
 } from "../errors.js";
 import type { RateLimiter } from "./rateLimiter.js";
 
+/** The bound a caller that names none is held to. */
+export const DEFAULT_MAX_BODY_BYTES = 8_000_000;
+
 export interface FetchOptions {
   url: string;
   userAgent: string;
   timeoutMs: number;
   maxRetries: number;
+  /**
+   * The largest page this reader holds, in bytes.
+   *
+   * Left out, the default stands. This interface is published, so a caller
+   * built against an earlier version keeps compiling and keeps the bound.
+   */
+  maxBodyBytes?: number;
   limiter: RateLimiter;
   logger: Logger;
   fetchImpl?: typeof fetch;
@@ -60,6 +70,51 @@ const RETRIES_AFTER_SILENCE = 1;
 const WHOLE_SECONDS = /^\d+$/;
 /** The same count written as an impossible wait. */
 const SIGNED_SECONDS = /^[+-]\d+(?:\.\d+)?$/;
+
+/**
+ * The body, read in pieces and stopped at the size this reader holds.
+ *
+ * A deadline abandons a body that arrives slowly. One that arrives quickly and
+ * large is never abandoned by it, and it lands in memory in one piece before
+ * anything looks at it: a page of two hundred megabytes fits inside twenty
+ * seconds, and what it costs is the whole session rather than the one call.
+ */
+async function readBounded(response: Response, maxBytes: number, url: string): Promise<string> {
+  const stream = response.body;
+  // A response carrying no readable stream is read whole. Nothing arrives in
+  // pieces to count, and the body still has to be waited for, so a caller
+  // holding a deadline over this read keeps it.
+  if (!stream) {
+    return await response.text();
+  }
+
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  const parts: string[] = [];
+  let held = 0;
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      held += value.byteLength;
+      if (held > maxBytes) {
+        throw parseFailure(
+          `BBC Good Food answered with more than ${maxBytes} bytes, past what this reads for one page.`,
+          { url },
+        );
+      }
+      parts.push(decoder.decode(value, { stream: true }));
+    }
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+
+  parts.push(decoder.decode());
+  return parts.join("");
+}
 
 export function parseRetryAfter(value: string | null, now = Date.now()): number | null {
   if (!value) {
@@ -101,8 +156,15 @@ export function parseRetryAfter(value: string | null, now = Date.now()): number 
  * that failure says nothing about the answer being reported: swallowing it here
  * keeps a refusal from being reported as a transport fault.
  */
-const discardBody = (response: Response): Promise<void> =>
-  response.body?.cancel().catch(() => undefined) ?? Promise.resolve();
+const discardBody = (response: Response): Promise<void> => {
+  const stream = response.body;
+  // A body being read in pieces holds the lock, and cancelling a locked stream
+  // raises rather than resolving. The reader releases it on its own way out.
+  if (stream === null || stream.locked) {
+    return Promise.resolve();
+  }
+  return stream.cancel().catch(() => undefined);
+};
 
 /** What a refusal amounts to, and what it costs the pacing. */
 type Refusal =
@@ -261,6 +323,7 @@ function backoffMs(attempt: number): number {
 
 export async function fetchText(options: FetchOptions): Promise<string> {
   const { url, userAgent, timeoutMs, maxRetries, limiter, logger } = options;
+  const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
   const doFetch = options.fetchImpl ?? fetch;
 
   let lastError: Error | null = null;
@@ -296,7 +359,10 @@ export async function fetchText(options: FetchOptions): Promise<string> {
         // The deadline runs against the body too. A transport that answers with
         // a status and then never delivers the body would otherwise hold this
         // request open, and the queue behind it with the request.
-        const body = await Promise.race([response.text(), deadline.expired]);
+        const body = await Promise.race([
+          readBounded(response, maxBodyBytes, url),
+          deadline.expired,
+        ]);
         // Counted only once the body is in hand: a read whose body failed is
         // not a read, and pacing must not speed up on the strength of one.
         limiter.succeeded();

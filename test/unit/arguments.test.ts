@@ -200,3 +200,14 @@ describe("the nearest of several declared names", () => {
     expect(message).toContain("max_total_minutes");
   });
 });
+
+describe("a refusal of the arguments as a whole", () => {
+  it("opens with [invalid_input] and points at no argument", () => {
+    const parsed = strictInput({ query: z.string() }).safeParse("brownies");
+
+    expect(parsed.success).toBe(false);
+    const message = parsed.error?.issues[0]?.message ?? "";
+    expect(message).toMatch(/^\[invalid_input]/);
+    expect(message).not.toContain(" at ");
+  });
+});

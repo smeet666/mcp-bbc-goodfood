@@ -19,8 +19,13 @@ import { editDistance } from "../text/distance.js";
 /** The code a caller branches on when the arguments cannot produce a request. */
 const INVALID_INPUT = "invalid_input";
 
-/** Zod's own wording. The error code is written in front of it. */
-const defaultMessage = z.core.locales.en().localeError;
+/**
+ * Zod's own wording. The error code is written in front of it.
+ *
+ * An error map may answer with an object or with nothing, and the English
+ * locale answers every issue with a string, which is the type given here.
+ */
+const defaultMessage = z.core.locales.en().localeError as (issue: z.core.$ZodRawIssue) => string;
 
 /**
  * The argument a refusal is about, written into the refusal.

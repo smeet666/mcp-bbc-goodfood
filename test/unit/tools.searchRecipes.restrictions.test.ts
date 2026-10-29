@@ -204,6 +204,8 @@ describe("runSearchRecipes hands its restrictions to the client", () => {
     }
 
     const facets = await facetsFor(args);
-    expect(Object.keys(facets).sort()).toEqual([...declared].sort());
+    expect(Object.keys(facets).sort((a, b) => Number(a > b) - Number(a < b))).toEqual(
+      [...declared].sort((a, b) => Number(a > b) - Number(a < b)),
+    );
   });
 });

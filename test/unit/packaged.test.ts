@@ -140,7 +140,7 @@ describe("the published package shape", () => {
   it("carries the built code, the documents a reader needs and the descriptor", () => {
     // Equality, not presence: a file dropped from this list leaves the
     // published archive without anything failing.
-    expect([...pkg.files].sort()).toEqual([
+    expect([...pkg.files].sort((a, b) => Number(a > b) - Number(a < b))).toEqual([
       "CHANGELOG.md",
       "LICENSE",
       "PRIVACY.md",

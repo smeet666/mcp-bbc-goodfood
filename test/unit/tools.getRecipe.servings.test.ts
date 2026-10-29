@@ -197,7 +197,7 @@ describe("the factor a request establishes", () => {
   it("carries every field the yield report declares", async () => {
     const output = await outputOf(plainRecipe(), { servings: 8 });
 
-    expect(Object.keys(output.yield).sort()).toStrictEqual([
+    expect(Object.keys(output.yield).sort((a, b) => Number(a > b) - Number(a < b))).toStrictEqual([
       "factor",
       "original_count",
       "original_text",
@@ -244,7 +244,7 @@ describe("the ingredients a request rescales", () => {
     expect(output.ingredients).toHaveLength(1);
     expect(output.ingredients[0]?.heading).toBe("For the pan");
     for (const line of linesOf(output)) {
-      expect(Object.keys(line).sort()).toStrictEqual([
+      expect(Object.keys(line).sort((a, b) => Number(a > b) - Number(a < b))).toStrictEqual([
         "amount",
         "amount_max",
         "original",

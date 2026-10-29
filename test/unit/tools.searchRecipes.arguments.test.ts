@@ -133,7 +133,9 @@ describe("search_recipes arguments", () => {
   });
 
   it("declares exactly the arguments the contract names", () => {
-    expect(Object.keys(searchRecipesInput).sort()).toEqual([...DECLARED_ARGUMENTS].sort());
+    expect(Object.keys(searchRecipesInput).sort((a, b) => Number(a > b) - Number(a < b))).toEqual(
+      [...DECLARED_ARGUMENTS].sort((a, b) => Number(a > b) - Number(a < b)),
+    );
   });
 
   it("requires a query, where list_filters treats its own as optional", async () => {

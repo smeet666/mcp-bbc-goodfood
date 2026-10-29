@@ -276,7 +276,7 @@ describe("what the tool publishes", () => {
   it("carries exactly the fields the contract names", () => {
     const output = outputOf({ ingredients: list, factor: 0.5 });
 
-    expect(Object.keys(output).sort()).toStrictEqual(
+    expect(Object.keys(output).sort((a, b) => Number(a > b) - Number(a < b))).toStrictEqual(
       [
         "factor",
         "ingredients",
@@ -285,7 +285,7 @@ describe("what the tool publishes", () => {
         "scaled_count",
         "source",
         "unscaled_count",
-      ].sort(),
+      ].sort((a, b) => Number(a > b) - Number(a < b)),
     );
   });
 
@@ -333,8 +333,10 @@ describe("what the tool publishes", () => {
     const output = outputOf({ ingredients: list, factor: 0.5 });
 
     for (const line of output.ingredients) {
-      expect(Object.keys(line).sort()).toStrictEqual(
-        ["amount", "amount_max", "original", "scaling", "text", "unit"].sort(),
+      expect(Object.keys(line).sort((a, b) => Number(a > b) - Number(a < b))).toStrictEqual(
+        ["amount", "amount_max", "original", "scaling", "text", "unit"].sort(
+          (a, b) => Number(a > b) - Number(a < b),
+        ),
       );
       expect(["scaled", "rounded", "unscaled"]).toContain(line.scaling);
     }

@@ -146,7 +146,9 @@ describe("runListFilters — the shape it hands back", () => {
     );
     const sc = asRecord(out.structuredContent);
 
-    expect(Object.keys(sc).sort()).toEqual(Object.keys(listFiltersOutputShape).sort());
+    expect(Object.keys(sc).sort((a, b) => Number(a > b) - Number(a < b))).toEqual(
+      Object.keys(listFiltersOutputShape).sort((a, b) => Number(a > b) - Number(a < b)),
+    );
     expect(sc["source"]).toBe("BBC Good Food");
     expect(sc["query"]).toBe("chicken");
     expect(sc["total_available"]).toBe(151);
@@ -157,17 +159,21 @@ describe("runListFilters — the shape it hands back", () => {
     expect(filters).toHaveLength(2);
     for (const raw of filters) {
       const g = asRecord(raw);
-      expect(Object.keys(g).sort()).toEqual(
+      expect(Object.keys(g).sort((a, b) => Number(a > b) - Number(a < b))).toEqual(
         // The axis also names the search argument that restricts it, since the
         // site's own name for an axis is not one a search takes.
-        ["argument", "label", "name", "option_count", "options"].sort(),
+        ["argument", "label", "name", "option_count", "options"].sort(
+          (a, b) => Number(a > b) - Number(a < b),
+        ),
       );
       expect(typeof g["name"]).toBe("string");
       expect(typeof g["label"]).toBe("string");
       expect(typeof g["option_count"]).toBe("number");
       for (const rawOption of asArray(g["options"])) {
         const o = asRecord(rawOption);
-        expect(Object.keys(o).sort()).toEqual(["count", "label", "value"].sort());
+        expect(Object.keys(o).sort((a, b) => Number(a > b) - Number(a < b))).toEqual(
+          ["count", "label", "value"].sort((a, b) => Number(a > b) - Number(a < b)),
+        );
         expect(typeof o["value"]).toBe("string");
         expect(typeof o["label"]).toBe("string");
         expect(o["count"] === null || typeof o["count"] === "number").toBe(true);

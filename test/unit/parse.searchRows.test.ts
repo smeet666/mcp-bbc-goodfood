@@ -75,7 +75,7 @@ describe("parseSearchRows", () => {
       difficulty: "Easy",
       author: "Wren Holloway",
     });
-    expect(Object.keys(rows[0]!).sort()).toEqual([
+    expect(Object.keys(rows[0]!).sort((a, b) => Number(a > b) - Number(a < b))).toEqual([
       "author",
       "difficulty",
       "id",

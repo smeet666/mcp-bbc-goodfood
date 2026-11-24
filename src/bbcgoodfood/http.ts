@@ -94,7 +94,7 @@ async function readBounded(response: Response, maxBytes: number, url: string): P
   let held = 0;
 
   try {
-    for (;;) {
+    while (true) {
       const { done, value } = await reader.read();
       if (done) {
         break;

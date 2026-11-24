@@ -162,7 +162,7 @@ function fitNotes(notes: readonly string[]): string[] {
     return [...notes];
   }
   const kept = [...notes];
-  for (;;) {
+  while (true) {
     kept.pop();
     const dropped = notes.length - kept.length;
     const last =

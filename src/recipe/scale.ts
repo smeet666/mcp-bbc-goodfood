@@ -221,7 +221,7 @@ const RAISED_PLACES = 1000;
 function raise(amount: number, unit: UnitInfo): { amount: number; unit: UnitInfo } {
   let value = amount;
   let current = unit;
-  for (;;) {
+  while (true) {
     const step = promoteUnit(current);
     if (!step || value < step.per) {
       return { amount: value, unit: current };
